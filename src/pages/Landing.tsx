@@ -1,280 +1,459 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Search, Film, Tv, TrendingUp, Flame, Dices, Play, Star, ArrowRight } from 'lucide-react';
+import { Search, X, Sparkles, Home, Film, Tv, TrendingUp, Flame, Heart, Dices, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import AnimeCarousel from '@/components/AnimeCarousel';
+import AnimeSection from '@/components/AnimeSection';
+import AnimeCard from '@/components/AnimeCard';
 import FloatingParticles from '@/components/FloatingParticles';
+import { AuthModal } from '@/components/AuthModal';
+import { useAnimeData } from '@/hooks/useAnimeData';
+import { useDebouncedCallback } from '@/hooks/useDebounce';
+import { useLenis } from '@/hooks/useLenis';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const Landing = () => {
+  useLenis();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const features = [
-    {
-      icon: Search,
-      title: 'Search Anime',
-      description: 'Find your favorite anime with our powerful search engine',
-    },
-    {
-      icon: Film,
-      title: 'Movies & Series',
-      description: 'Explore thousands of anime movies and TV series',
-    },
-    {
-      icon: TrendingUp,
-      title: 'Trending Now',
-      description: 'Stay updated with the most popular anime',
-    },
-    {
-      icon: Dices,
-      title: 'Random Picker',
-      description: 'Can\'t decide? Spin the wheel to pick your next watch',
-    },
-  ];
+  const { user, signOut } = useAuth();
 
-  const categories = [
-    { name: 'Action', color: 'from-red-500 to-orange-500' },
-    { name: 'Romance', color: 'from-pink-500 to-rose-500' },
-    { name: 'Comedy', color: 'from-yellow-500 to-amber-500' },
-    { name: 'Fantasy', color: 'from-purple-500 to-violet-500' },
-    { name: 'Horror', color: 'from-gray-700 to-gray-900' },
-    { name: 'Sci-Fi', color: 'from-cyan-500 to-blue-500' },
+  const {
+    popularAnime,
+    animeMovies,
+    upcomingAnime,
+    featuredAnime,
+    isLoadingPopular,
+    isLoadingMovies,
+    isLoadingUpcoming,
+    hasMorePopular,
+    hasMoreMovies,
+    hasMoreUpcoming,
+    loadMorePopular,
+    loadMoreMovies,
+    loadMoreUpcoming,
+    searchAnime,
+    searchResults,
+    isSearching: apiSearching,
+  } = useAnimeData();
+
+  const debouncedSearch = useDebouncedCallback((query: string) => {
+    if (query.trim()) {
+      searchAnime(query);
+    }
+  }, 500);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    setIsSearching(query.length > 0);
+    debouncedSearch(query);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setIsSearching(false);
+  };
+
+  const handleProtectedAction = (action: string) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    toast.success("Logged out successfully!");
+  };
+
+  const featuredItems = featuredAnime.map(anime => ({
+    id: anime.mal_id,
+    title: anime.title,
+    imageUrl: anime.images.jpg.large_image_url,
+    synopsis: anime.synopsis,
+    score: anime.score,
+  }));
+
+  const navTabs = [
+    { id: 'home', label: 'Home', icon: Home },
+    { id: 'movies', label: 'Movies', icon: Film },
+    { id: 'tv', label: 'TV Series', icon: Tv },
+    { id: 'popular', label: 'Most Popular', icon: TrendingUp },
+    { id: 'airing', label: 'Top Airing', icon: Flame },
   ];
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background bg-animated-gradient overflow-x-hidden">
       <FloatingParticles />
-      
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center">
-        {/* Background Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-background to-background" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.3),transparent)]" />
-        
-        {/* Animated Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
 
-        <div className="relative z-10 container mx-auto px-4 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            {/* Logo Badge */}
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8"
+      {/* Sticky Header */}
+      <motion.header 
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="glass sticky top-0 z-50 border-b border-white/5"
+      >
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-6">
+            {/* Logo */}
+            <motion.h1 
+              className="text-2xl font-black text-foreground shrink-0 flex items-center gap-2 cursor-pointer"
+              whileHover={{ scale: 1.02 }}
+              onClick={() => navigate('/')}
             >
-              <Sparkles className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-muted-foreground">Your Ultimate Anime Destination</span>
-            </motion.div>
+              <Sparkles className="w-6 h-6 text-primary" />
+              <span>Anime Finder</span>
+            </motion.h1>
 
-            {/* Title */}
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6">
-              <span className="text-gradient-primary">Anime</span>
-              <br />
-              <span className="text-foreground">Finder</span>
-            </h1>
+            {/* Search Box */}
+            <div className="flex-1 max-w-lg relative">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Input
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  placeholder="Search anime..."
+                  className="pl-4 pr-12 py-3 bg-secondary/80 border-white/10 rounded-full focus:ring-2 focus:ring-primary transition-all"
+                />
+                {searchQuery ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={clearSearch}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                )}
+              </motion.div>
+            </div>
 
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10">
-              Discover, explore, and track your favorite anime. Your journey to the anime universe starts here.
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {/* Right Nav Items */}
+            <div className="hidden md:flex items-center gap-2">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
-                  size="lg"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Search
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => navigate('/explore')}
-                  className="bg-gradient-to-r from-primary to-accent text-white font-bold px-8 py-6 text-lg rounded-full glow-primary"
+                  className="text-muted-foreground hover:text-foreground"
                 >
-                  <Play className="w-5 h-5 mr-2" />
-                  Start Exploring
+                  Explore
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => navigate('/wheel')}
-                  className="border-white/20 hover:bg-white/10 px-8 py-6 text-lg rounded-full"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => handleProtectedAction("favorites")}
                 >
-                  <Dices className="w-5 h-5 mr-2" />
-                  Try Spin Wheel
+                  <Heart className="w-4 h-4 mr-2" />
+                  Favorites
                 </Button>
               </motion.div>
-            </div>
-          </motion.div>
-
-          {/* Scroll Indicator */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2"
-          >
-            <motion.div
-              animate={{ y: [0, 10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-6 h-10 rounded-full border-2 border-white/30 flex items-start justify-center pt-2"
-            >
-              <div className="w-1.5 h-3 rounded-full bg-primary" />
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-24 relative">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Everything You Need
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Powerful features to enhance your anime discovery experience
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -5, scale: 1.02 }}
-                className="glass rounded-2xl p-6 border border-white/10 cursor-pointer group"
-              >
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <feature.icon className="w-7 h-7 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Categories Section */}
-      <section className="py-24 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-        
-        <div className="container mx-auto px-4 relative">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Browse by Genre
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Explore anime across different genres and find your next favorite
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.map((category, index) => (
-              <motion.div
-                key={category.name}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-                whileHover={{ scale: 1.05 }}
-                onClick={() => navigate('/explore')}
-                className={`
-                  aspect-square rounded-2xl bg-gradient-to-br ${category.color} 
-                  flex items-center justify-center cursor-pointer
-                  shadow-lg hover:shadow-2xl transition-all
-                `}
-              >
-                <span className="text-white font-bold text-lg">{category.name}</span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-24">
-        <div className="container mx-auto px-4">
-          <div className="glass rounded-3xl p-8 md:p-12 border border-white/10">
-            <div className="grid md:grid-cols-3 gap-8 text-center">
-              {[
-                { value: '10K+', label: 'Anime Titles' },
-                { value: '50K+', label: 'Active Users' },
-                { value: '1M+', label: 'Recommendations' },
-              ].map((stat, index) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={() => navigate('/wheel')}
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
                 >
-                  <div className="text-4xl md:text-6xl font-black text-gradient-primary mb-2">
-                    {stat.value}
+                  <Dices className="w-4 h-4 mr-2" />
+                  Wheel
+                </Button>
+              </motion.div>
+              
+              {/* Auth Button */}
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                    <User className="w-4 h-4 text-primary" />
+                    <span className="text-sm text-foreground">
+                      {user.email?.split("@")[0]}
+                    </span>
                   </div>
-                  <div className="text-muted-foreground text-lg">{stat.label}</div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={handleLogout}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </Button>
+                  </motion.div>
+                </div>
+              ) : (
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    onClick={() => setShowAuthModal(true)}
+                    className="bg-gradient-to-r from-primary to-accent text-white font-bold rounded-full px-6"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Login
+                  </Button>
                 </motion.div>
-              ))}
+              )}
             </div>
           </div>
         </div>
-      </section>
+      </motion.header>
 
-      {/* CTA Section */}
-      <section className="py-24 relative">
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent" />
-        
-        <div className="container mx-auto px-4 relative">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center max-w-3xl mx-auto"
-          >
-            <Star className="w-16 h-16 text-primary mx-auto mb-6" />
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Ready to Dive In?
-            </h2>
-            <p className="text-muted-foreground text-xl mb-10">
-              Join thousands of anime fans and start discovering amazing anime today.
-            </p>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                size="lg"
-                onClick={() => navigate('/explore')}
-                className="bg-gradient-to-r from-primary to-accent text-white font-bold px-10 py-6 text-lg rounded-full glow-primary"
-              >
-                Get Started
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
+      <main className="relative z-10">
+        {/* Search Results */}
+        {isSearching ? (
+          <div className="container mx-auto px-4 py-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold text-foreground">
+                  Search Results for "<span className="text-primary">{searchQuery}</span>"
+                </h2>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    variant="ghost"
+                    onClick={clearSearch}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Clear Search
+                  </Button>
+                </motion.div>
+              </div>
+
+              {apiSearching ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <motion.div 
+                      key={i} 
+                      className="aspect-[3/4] rounded-2xl bg-card"
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
+                    />
+                  ))}
+                </div>
+              ) : searchResults.length === 0 ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-20"
+                >
+                  <div className="text-6xl mb-4">🔍</div>
+                  <p className="text-muted-foreground text-xl">
+                    No anime found for "{searchQuery}"
+                  </p>
+                </motion.div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                  {searchResults.map((anime, index) => (
+                    <AnimeCard
+                      key={anime.mal_id}
+                      title={anime.title}
+                      imageUrl={anime.images.jpg.large_image_url}
+                      score={anime.score}
+                      year={anime.year}
+                      type={anime.type}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              )}
             </motion.div>
-          </motion.div>
-        </div>
-      </section>
+          </div>
+        ) : (
+          <>
+            {/* Hero Carousel with Nav Tabs */}
+            <div className="relative">
+              {/* Featured Carousel */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6 }}
+              >
+                <AnimeCarousel items={featuredItems} />
+              </motion.div>
+
+              {/* Navigation Tabs Overlay */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex items-center gap-1 glass rounded-full px-2 py-1.5"
+                >
+                  {navTabs.map((tab) => (
+                    <motion.button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`
+                        flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 text-sm font-medium
+                        ${activeTab === tab.id 
+                          ? 'bg-white/15 text-white' 
+                          : 'text-white/70 hover:text-white hover:bg-white/5'
+                        }
+                      `}
+                    >
+                      <tab.icon className="w-4 h-4" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </motion.button>
+                  ))}
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Trending Posts & About Section */}
+            <div className="container mx-auto px-4 py-8">
+              <div className="grid md:grid-cols-2 gap-8 mb-8">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  className="glass rounded-xl p-6 border border-white/10"
+                >
+                  <h2 className="text-2xl font-bold text-foreground mb-4">Trending Posts</h2>
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div 
+                        key={i} 
+                        className="flex gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                        onClick={() => handleProtectedAction("post")}
+                      >
+                        <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/30 to-accent/30 flex-shrink-0" />
+                        <div>
+                          <h3 className="font-medium text-foreground">Amazing anime experience!</h3>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            The animation quality in this series is absolutely stunning...
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  className="glass rounded-xl p-6 border border-white/10"
+                >
+                  <h2 className="text-2xl font-bold text-foreground mb-4">About AnimeFinder</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium text-foreground mb-2">What is AnimeFinder?</h3>
+                      <p className="text-muted-foreground text-sm">
+                        AnimeFinder is your ultimate destination for discovering and exploring anime. 
+                        Browse through thousands of titles, save your favorites, and get personalized 
+                        recommendations based on your taste.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-foreground mb-2">Features</h3>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Extensive anime database</li>
+                        <li>• Personalized recommendations</li>
+                        <li>• Save and organize favorites</li>
+                        <li>• Spin the wheel for random picks</li>
+                      </ul>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Anime Sections */}
+            <div className="container mx-auto px-4 pb-8 space-y-4">
+              {/* Popular Anime Section */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, margin: "-100px" }}
+              >
+                <AnimeSection
+                  title="🔥 Popular Anime"
+                  animes={popularAnime}
+                  isLoading={isLoadingPopular}
+                  hasMore={hasMorePopular}
+                  onLoadMore={loadMorePopular}
+                />
+              </motion.div>
+
+              {/* Anime Movies Section */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, margin: "-100px" }}
+              >
+                <AnimeSection
+                  title="🎬 Anime Movies"
+                  animes={animeMovies}
+                  isLoading={isLoadingMovies}
+                  hasMore={hasMoreMovies}
+                  onLoadMore={loadMoreMovies}
+                />
+              </motion.div>
+
+              {/* Upcoming Anime Section */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, margin: "-100px" }}
+              >
+                <AnimeSection
+                  title="📅 Upcoming Anime"
+                  animes={upcomingAnime}
+                  isLoading={isLoadingUpcoming}
+                  hasMore={hasMoreUpcoming}
+                  onLoadMore={loadMoreUpcoming}
+                />
+              </motion.div>
+            </div>
+          </>
+        )}
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-white/10 py-8">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <span className="font-bold text-foreground">Anime Finder</span>
-          </div>
           <p>© 2026 Anime Finder. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </div>
   );
 };
