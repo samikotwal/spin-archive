@@ -1,20 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { Search, X, Sparkles, ArrowLeft, Filter, Grid, List } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, X, Sparkles, ArrowLeft, Heart, Dices } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AnimeCard from '@/components/AnimeCard';
 import FloatingParticles from '@/components/FloatingParticles';
+import { AuthModal } from '@/components/AuthModal';
 import { useAnimeData } from '@/hooks/useAnimeData';
 import { useDebouncedCallback } from '@/hooks/useDebounce';
 import { useLenis } from '@/hooks/useLenis';
+import { useAuth } from '@/hooks/useAuth';
 
 const AnimeFinder = () => {
   useLenis();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const { user } = useAuth();
 
   const {
     popularAnime,
@@ -30,6 +35,15 @@ const AnimeFinder = () => {
     }
   }, 500);
 
+  // Handle initial search from URL params
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q) {
+      setSearchQuery(q);
+      searchAnime(q);
+    }
+  }, [searchParams]);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -40,6 +54,15 @@ const AnimeFinder = () => {
     setSearchQuery('');
   };
 
+  const handleFavorites = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    // Navigate to saved lists or handle favorites
+    navigate('/saved');
+  };
+
   const displayAnime = searchQuery.length > 0 ? searchResults : popularAnime;
   const isLoading = searchQuery.length > 0 ? apiSearching : isLoadingPopular;
 
@@ -47,7 +70,7 @@ const AnimeFinder = () => {
     <div className="min-h-screen bg-background bg-animated-gradient overflow-x-hidden">
       <FloatingParticles />
 
-      {/* Header */}
+      {/* Header - Simplified with only Search, Wheel, Favorites */}
       <motion.header 
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -103,34 +126,27 @@ const AnimeFinder = () => {
               )}
             </div>
 
-            {/* View Toggle */}
-            <div className="hidden md:flex items-center gap-2 glass rounded-full p-1">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="icon"
-                onClick={() => setViewMode('grid')}
-                className={viewMode === 'grid' ? 'bg-primary/20' : ''}
-              >
-                <Grid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="icon"
-                onClick={() => setViewMode('list')}
-                className={viewMode === 'list' ? 'bg-primary/20' : ''}
-              >
-                <List className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Filter Button */}
+            {/* Wheel Button */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
+                onClick={() => navigate('/wheel')}
                 variant="outline"
-                className="border-white/10 rounded-full"
+                className="border-white/10 rounded-full gap-2"
               >
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
+                <Dices className="w-4 h-4" />
+                <span className="hidden sm:inline">Wheel</span>
+              </Button>
+            </motion.div>
+
+            {/* Favorites Button */}
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={handleFavorites}
+                variant="outline"
+                className="border-white/10 rounded-full gap-2"
+              >
+                <Heart className="w-4 h-4" />
+                <span className="hidden sm:inline">Favorites</span>
               </Button>
             </motion.div>
           </div>
@@ -206,6 +222,12 @@ const AnimeFinder = () => {
           <p>© 2026 Anime Finder. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </div>
   );
 };
