@@ -204,6 +204,7 @@ const AnimeFinder = () => {
             {displayAnime.map((anime, index) => (
               <AnimeCard
                 key={anime.mal_id}
+                id={anime.mal_id}
                 title={anime.title}
                 imageUrl={anime.images.jpg.large_image_url}
                 score={anime.score}
