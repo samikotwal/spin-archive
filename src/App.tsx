@@ -7,6 +7,7 @@ import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import SavedLists from "./pages/SavedLists";
 import AnimeFinder from "./pages/AnimeFinder";
+import AnimeDetail from "./pages/AnimeDetail";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -21,8 +22,9 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/explore" element={<AnimeFinder />} />
+          <Route path="/anime/:id" element={<AnimeDetail />} />
           <Route path="/wheel" element={<Index />} />
-          <Route path="/saved-lists" element={<SavedLists />} />
+          <Route path="/saved" element={<SavedLists />} />
           <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

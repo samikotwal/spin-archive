@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { Star, Play } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface AnimeCardProps {
+  id?: number;
   title: string;
   imageUrl: string;
   score?: number;
@@ -10,7 +12,15 @@ interface AnimeCardProps {
   index?: number;
 }
 
-const AnimeCard = ({ title, imageUrl, score, year, type, index = 0 }: AnimeCardProps) => {
+const AnimeCard = ({ id, title, imageUrl, score, year, type, index = 0 }: AnimeCardProps) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (id) {
+      navigate(`/anime/${id}`);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30, scale: 0.9 }}
@@ -22,6 +32,8 @@ const AnimeCard = ({ title, imageUrl, score, year, type, index = 0 }: AnimeCardP
         stiffness: 100,
       }}
       whileHover={{ y: -12, scale: 1.03 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={handleClick}
       className="group relative overflow-hidden rounded-2xl bg-card cursor-pointer"
     >
       {/* Glow Effect */}
@@ -67,14 +79,15 @@ const AnimeCard = ({ title, imageUrl, score, year, type, index = 0 }: AnimeCardP
           
           {/* Play Button on Hover */}
           <motion.div
-            initial={{ opacity: 0, scale: 0 }}
+            initial={{ opacity: 0, scale: 0.5 }}
             whileHover={{ opacity: 1, scale: 1 }}
             className="absolute inset-0 flex items-center justify-center"
           >
             <motion.div 
               className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 glow-primary"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              initial={{ scale: 0, rotate: -180 }}
+              whileInView={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
             >
               <Play className="w-8 h-8 text-white ml-1" fill="white" />
             </motion.div>
@@ -83,9 +96,9 @@ const AnimeCard = ({ title, imageUrl, score, year, type, index = 0 }: AnimeCardP
           {/* Score Badge */}
           {score && (
             <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 + 0.2 }}
+              initial={{ opacity: 0, x: 20, rotate: 10 }}
+              animate={{ opacity: 1, x: 0, rotate: 0 }}
+              transition={{ delay: index * 0.05 + 0.2, type: 'spring' }}
               className="absolute top-3 right-3 flex items-center gap-1 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-md border border-white/10"
             >
               <Star className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" />
@@ -96,9 +109,9 @@ const AnimeCard = ({ title, imageUrl, score, year, type, index = 0 }: AnimeCardP
           {/* Type Badge */}
           {type && (
             <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 + 0.2 }}
+              initial={{ opacity: 0, x: -20, rotate: -10 }}
+              animate={{ opacity: 1, x: 0, rotate: 0 }}
+              transition={{ delay: index * 0.05 + 0.2, type: 'spring' }}
               className="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/90 to-accent/90 backdrop-blur-md"
             >
               <span className="text-xs font-bold text-white">{type}</span>
@@ -127,9 +140,13 @@ const AnimeCard = ({ title, imageUrl, score, year, type, index = 0 }: AnimeCardP
         </div>
 
         {/* Border Glow on Hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl">
+        <motion.div 
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl"
+          initial={{ opacity: 0 }}
+          whileHover={{ opacity: 1 }}
+        >
           <div className="absolute inset-0 rounded-2xl ring-2 ring-primary/60" />
-        </div>
+        </motion.div>
       </div>
     </motion.div>
   );
