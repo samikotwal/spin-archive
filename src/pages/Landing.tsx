@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, Star, ChevronRight } from 'lucide-react';
+import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, Star, ChevronRight, Heart, Disc3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import FloatingParticles from '@/components/FloatingParticles';
+import HeroBackground from '@/components/HeroBackground';
 import { AuthModal } from '@/components/AuthModal';
 import { useLenis } from '@/hooks/useLenis';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,8 +16,7 @@ const Landing = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [currentBgIndex, setCurrentBgIndex] = useState(0);
-  const [isTyping, setIsTyping] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
 
   const { user, signOut } = useAuth();
   const { scrollY } = useScroll();
@@ -24,21 +24,6 @@ const Landing = () => {
   const headerOpacity = useTransform(scrollY, [0, 100], [0.8, 1]);
   const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
   const heroY = useTransform(scrollY, [0, 300], [0, 50]);
-
-  // Rotating background colors
-  const bgGradients = [
-    'from-primary/30 via-accent/20 to-transparent',
-    'from-accent/30 via-primary/20 to-transparent',
-    'from-blue-500/30 via-primary/20 to-transparent',
-    'from-green-500/30 via-accent/20 to-transparent',
-  ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentBgIndex((prev) => (prev + 1) % bgGradients.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +35,27 @@ const Landing = () => {
   const handleLogout = async () => {
     await signOut();
     toast.success("Logged out successfully!");
+  };
+
+  const handleNavClick = (tabId: string) => {
+    setActiveTab(tabId);
+    switch(tabId) {
+      case 'home':
+        navigate('/');
+        break;
+      case 'movies':
+        navigate('/explore?type=movie');
+        break;
+      case 'tv':
+        navigate('/explore?type=tv');
+        break;
+      case 'popular':
+        navigate('/explore?sort=popular');
+        break;
+      case 'airing':
+        navigate('/explore?status=airing');
+        break;
+    }
   };
 
   const navTabs = [
@@ -71,43 +77,47 @@ const Landing = () => {
     "Demon Slayer",
   ];
 
-  const trendingPosts = [
+  const features = [
     {
-      id: 1,
-      tag: "#Suggestion",
-      tagColor: "text-green-400",
-      time: "7 hours ago",
-      comments: 155,
-      title: "Do you guys have any tips on how to wake up early? like at 9-10 Am ?",
-      content: "As the title says",
-      author: "SGNK-43_xD",
+      id: 'search',
+      icon: Search,
+      title: 'Smart Search',
+      description: 'Find any anime instantly with our powerful search',
+      color: 'from-blue-500 to-cyan-500',
+      action: () => navigate('/explore'),
     },
     {
-      id: 2,
-      tag: "#Recommendation",
-      tagColor: "text-yellow-400",
-      time: "2 days ago",
-      comments: 80,
-      title: "YOU NEED TO WATCH THEM BEFORE YOU DIE!!! Greatest Anime of All Time",
-      content: "Categories: Romance: Clannad Action: Attack On Titan Adventure: One Piece...",
-      author: "AnimeLover_99",
+      id: 'movies',
+      icon: Film,
+      title: 'Movies & Series',
+      description: 'Browse through thousands of anime movies and series',
+      color: 'from-purple-500 to-pink-500',
+      action: () => navigate('/explore?type=movie'),
     },
     {
-      id: 3,
-      tag: "#Discussion",
-      tagColor: "text-blue-400",
-      time: "5 hours ago",
-      comments: 245,
-      title: "What anime got you into watching anime?",
-      content: "For me it was Death Note back in 2008...",
-      author: "OtakuMaster",
+      id: 'trending',
+      icon: TrendingUp,
+      title: 'Trending Now',
+      description: 'Discover what everyone is watching right now',
+      color: 'from-orange-500 to-red-500',
+      action: () => navigate('/explore?sort=popular'),
     },
-  ];
-
-  const featuredAnime = [
-    { id: 1, title: "Solo Leveling", score: 8.9, type: "TV" },
-    { id: 2, title: "Frieren", score: 9.1, type: "TV" },
-    { id: 3, title: "Blue Lock", score: 8.4, type: "TV" },
+    {
+      id: 'wheel',
+      icon: Disc3,
+      title: 'Random Picker',
+      description: "Can't decide? Let the wheel choose for you!",
+      color: 'from-green-500 to-emerald-500',
+      action: () => navigate('/wheel'),
+    },
+    {
+      id: 'favorites',
+      icon: Heart,
+      title: 'My Favorites',
+      description: 'Save and organize your favorite anime',
+      color: 'from-red-500 to-pink-500',
+      action: () => user ? navigate('/favorites') : setShowAuthModal(true),
+    },
   ];
 
   const containerVariants = {
@@ -133,28 +143,6 @@ const Landing = () => {
     <div className="min-h-screen bg-background overflow-x-hidden">
       <FloatingParticles />
 
-      {/* Animated Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentBgIndex}
-            className={`absolute right-0 top-0 w-2/3 h-full bg-gradient-to-l ${bgGradients[currentBgIndex]} opacity-30 blur-3xl`}
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 0.3, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 2 }}
-          />
-        </AnimatePresence>
-        <motion.div 
-          className="absolute bottom-0 left-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.2, 0.3, 0.2],
-          }}
-          transition={{ duration: 8, repeat: Infinity }}
-        />
-      </div>
-
       {/* Header Navigation */}
       <motion.header 
         style={{ opacity: headerOpacity }}
@@ -169,10 +157,15 @@ const Landing = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/')}
             >
-              <Sparkles className="w-6 h-6 text-primary" />
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+              >
+                <Sparkles className="w-6 h-6 text-primary" />
+              </motion.div>
               <span className="text-xl font-black">
-                <span className="text-foreground">Anime</span>
-                <span className="text-primary">Finder</span>
+                <span className="text-foreground">NERO</span>
+                <span className="text-gradient-primary">FINDER</span>
               </span>
             </motion.div>
 
@@ -185,59 +178,80 @@ const Landing = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   whileHover={{ scale: 1.1, y: -2 }}
-                  className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium relative group"
+                  onClick={() => handleNavClick(tab.id)}
+                  className={`text-sm font-medium relative group flex items-center gap-1.5 transition-colors ${
+                    activeTab === tab.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
+                  <tab.icon className="w-4 h-4" />
                   {tab.label}
                   <motion.span 
-                    className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300"
+                    className={`absolute -bottom-1 left-0 h-0.5 bg-primary transition-all duration-300 ${
+                      activeTab === tab.id ? 'w-full' : 'w-0 group-hover:w-full'
+                    }`}
                   />
                 </motion.button>
               ))}
             </div>
             
-            {/* Auth Button */}
-            {user ? (
-              <div className="flex items-center gap-2">
-                <motion.div 
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20"
-                  whileHover={{ scale: 1.05, borderColor: 'hsl(262 83% 58% / 0.5)' }}
-                >
-                  <User className="w-4 h-4 text-primary" />
-                  <span className="text-sm text-foreground">
-                    {user.email?.split("@")[0]}
-                  </span>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={handleLogout}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </Button>
-                </motion.div>
-              </div>
-            ) : (
+            {/* Auth & Actions */}
+            <div className="flex items-center gap-3">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
-                  onClick={() => setShowAuthModal(true)}
-                  className="bg-gradient-to-r from-primary to-accent text-white rounded-full px-6"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => user ? navigate('/favorites') : setShowAuthModal(true)}
+                  className="text-muted-foreground hover:text-accent"
                 >
-                  <User className="w-4 h-4 mr-2" />
-                  Login
+                  <Heart className="w-5 h-5" />
                 </Button>
               </motion.div>
-            )}
+
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <motion.div 
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20"
+                    whileHover={{ scale: 1.05, borderColor: 'hsl(262 83% 58% / 0.5)' }}
+                  >
+                    <User className="w-4 h-4 text-primary" />
+                    <span className="text-sm text-foreground hidden sm:inline">
+                      {user.email?.split("@")[0]}
+                    </span>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={handleLogout}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </Button>
+                  </motion.div>
+                </div>
+              ) : (
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    onClick={() => setShowAuthModal(true)}
+                    className="bg-gradient-to-r from-primary to-accent text-white rounded-full px-6"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Login
+                  </Button>
+                </motion.div>
+              )}
+            </div>
           </div>
         </div>
       </motion.header>
 
-      {/* Hero Section */}
+      {/* Hero Section with Background */}
       <motion.section 
         style={{ scale: heroScale, y: heroY }}
-        className="relative min-h-[75vh] flex items-center overflow-hidden"
+        className="relative min-h-[85vh] flex items-center overflow-hidden"
       >
+        <HeroBackground />
+        
         <div className="container mx-auto px-4 relative z-20">
           <motion.div 
             className="max-w-2xl"
@@ -251,7 +265,7 @@ const Landing = () => {
               className="mb-8"
             >
               <motion.h1
-                className="text-6xl md:text-7xl font-black"
+                className="text-5xl sm:text-6xl md:text-7xl font-black"
                 animate={{
                   y: [-5, 5, -5],
                 }}
@@ -265,17 +279,17 @@ const Landing = () => {
                   className="text-foreground inline-block"
                   whileHover={{ scale: 1.1, rotate: -5 }}
                 >
-                  h!
+                  NERO
                 </motion.span>
                 <motion.span 
-                  className="text-gradient-primary inline-block"
+                  className="text-gradient-primary inline-block ml-2"
                   whileHover={{ scale: 1.1, rotate: 5 }}
                 >
-                  anime
+                  FINDER
                 </motion.span>
               </motion.h1>
               <motion.p 
-                className="text-muted-foreground mt-2"
+                className="text-muted-foreground mt-2 text-lg"
                 variants={itemVariants}
               >
                 Your ultimate destination for anime discovery
@@ -296,11 +310,7 @@ const Landing = () => {
                 <div className="flex-1 relative group">
                   <Input
                     value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setIsTyping(true);
-                    }}
-                    onBlur={() => setIsTyping(false)}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search anime..."
                     className="h-14 pl-6 pr-4 bg-card/50 border-white/10 rounded-xl text-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                   />
@@ -368,7 +378,7 @@ const Landing = () => {
                     transition={{ duration: 0.5 }}
                   />
                   <Play className="w-5 h-5 mr-2" fill="white" />
-                  Watch anime
+                  Explore Anime
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
                 </Button>
               </motion.div>
@@ -381,220 +391,122 @@ const Landing = () => {
                   variant="outline"
                   className="h-14 px-8 border-white/10 rounded-full text-lg font-bold hover:bg-white/5"
                 >
-                  🎲 Random Pick
+                  <Disc3 className="w-5 h-5 mr-2" />
+                  Random Pick
                 </Button>
               </motion.div>
             </motion.div>
           </motion.div>
         </div>
-
-        {/* Floating Featured Cards */}
-        <div className="hidden lg:block absolute right-8 top-1/2 -translate-y-1/2 z-10">
-          {featuredAnime.map((anime, index) => (
-            <motion.div
-              key={anime.id}
-              initial={{ opacity: 0, x: 100, rotate: 10 }}
-              animate={{ 
-                opacity: 1, 
-                x: 0, 
-                rotate: index * 5 - 5,
-                y: index * 20,
-              }}
-              transition={{ delay: 0.8 + index * 0.2, type: 'spring' }}
-              whileHover={{ scale: 1.1, rotate: 0, zIndex: 10 }}
-              className="absolute w-48 h-64 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 border border-white/10 backdrop-blur-sm p-4 cursor-pointer"
-              style={{ 
-                right: index * 30, 
-                top: index * 40,
-                transformOrigin: 'center center',
-              }}
-              onClick={() => navigate('/explore')}
-            >
-              <div className="flex items-center gap-1 mb-2">
-                <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
-                <span className="text-sm font-bold text-foreground">{anime.score}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">{anime.type}</p>
-              <p className="text-sm font-bold text-foreground mt-auto">{anime.title}</p>
-            </motion.div>
-          ))}
-        </div>
       </motion.section>
 
-      {/* Content Section */}
+      {/* Features Section */}
+      <section className="py-20 relative z-10">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">
+              Discover Features
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Everything you need to find your next favorite anime
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature.id}
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -10, scale: 1.02 }}
+                onClick={feature.action}
+                className="glass rounded-2xl p-6 border border-white/5 hover:border-primary/30 cursor-pointer group relative overflow-hidden"
+              >
+                {/* Gradient Background on Hover */}
+                <motion.div
+                  className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}
+                />
+                
+                <motion.div
+                  className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4 relative z-10`}
+                  whileHover={{ rotate: 10, scale: 1.1 }}
+                >
+                  <feature.icon className="w-7 h-7 text-white" />
+                </motion.div>
+                
+                <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors relative z-10">
+                  {feature.title}
+                </h3>
+                <p className="text-muted-foreground text-sm relative z-10">
+                  {feature.description}
+                </p>
+                
+                <motion.div
+                  className="flex items-center gap-1 mt-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity relative z-10"
+                  initial={{ x: -10 }}
+                  whileHover={{ x: 0 }}
+                >
+                  <span className="text-sm font-medium">Explore</span>
+                  <ChevronRight className="w-4 h-4" />
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
       <section className="py-16 relative z-10">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* About Section */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ type: 'spring', stiffness: 50 }}
-              className="lg:col-span-2 space-y-8"
-            >
-              {/* Share Section */}
-              <motion.div 
-                className="glass rounded-2xl p-6 border border-white/5 hover:border-primary/20 transition-colors"
-                whileHover={{ y: -5 }}
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <motion.div 
-                    className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center"
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.5 }}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="glass rounded-3xl p-8 md:p-12 border border-white/5"
+          >
+            <div className="grid md:grid-cols-4 gap-8 text-center">
+              {[
+                { value: '50K+', label: 'Anime Titles', icon: '🎬' },
+                { value: '1M+', label: 'Episodes', icon: '📺' },
+                { value: '10K+', label: 'Daily Users', icon: '👥' },
+                { value: '4.9', label: 'User Rating', icon: '⭐' },
+              ].map((stat, index) => (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <motion.span
+                    className="text-4xl block mb-2"
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: index * 0.5 }}
                   >
-                    <span className="text-2xl">🎌</span>
-                  </motion.div>
-                  <div>
-                    <p className="font-bold text-foreground">Share HIANIME</p>
-                    <p className="text-sm text-muted-foreground">to your friends</p>
-                  </div>
-                  <motion.span 
-                    className="text-muted-foreground ml-auto text-lg font-bold"
-                    initial={{ scale: 1 }}
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    520k
+                    {stat.icon}
                   </motion.span>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {['Telegram', 'X', 'Facebook', 'Discord'].map((platform, i) => (
-                    <motion.div
-                      key={platform}
-                      initial={{ opacity: 0, y: 10 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      whileHover={{ scale: 1.05, y: -2 }}
-                    >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full border-white/10 hover:bg-primary/10 hover:border-primary/30"
-                      >
-                        Share
-                      </Button>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* About Content */}
-              <motion.div 
-                className="space-y-6"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-              >
-                <h2 className="text-3xl font-bold text-foreground">
-                  HiAnimes.cz - The best site to watch anime online for Free
-                </h2>
-                <motion.p 
-                  className="text-muted-foreground leading-relaxed"
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  Do you know that according to Google, the monthly search volume for anime related topics is up to 
-                  over 1 Billion times? Anime is famous worldwide and it is no wonder we've seen a sharp rise in the 
-                  number of free anime streaming sites.
-                </motion.p>
-
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  className="glass rounded-xl p-6 border border-primary/20"
-                >
-                  <h3 className="text-xl font-bold text-foreground mb-3 flex items-center gap-2">
-                    <span className="text-2xl">✨</span> What is HiAnime.cz?
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    HiAnime.cz is a free site to watch anime and you can even download subbed or dubbed anime in 
-                    ultra HD quality without any registration or payment.
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.1 }}
-                  className="glass rounded-xl p-6 border border-green-500/20"
-                >
-                  <h3 className="text-xl font-bold text-foreground mb-3 flex items-center gap-2">
-                    <span className="text-2xl">🛡️</span> Is HiAnimes.cz safe?
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Yes we are! We keep scanning our platform 24/7 to make sure everything is clean and safe for 
-                    all anime fans worldwide.
-                  </p>
-                </motion.div>
-              </motion.div>
-            </motion.div>
-
-            {/* Trending Posts */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ type: 'spring', stiffness: 50 }}
-              className="space-y-4"
-            >
-              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-primary" />
-                Trending Posts
-              </h2>
-              
-              {trendingPosts.map((post, index) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1, type: 'spring' }}
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  className="glass rounded-xl p-4 border border-white/5 hover:border-primary/20 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-xs font-semibold ${post.tagColor}`}>{post.tag}</span>
-                    <span className="text-xs text-muted-foreground">{post.time}</span>
-                    <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
-                      💬 {post.comments}
-                    </span>
-                  </div>
-                  <h3 className="font-medium text-foreground text-sm mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                    {post.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                    {post.content}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <motion.div 
-                      className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/50 to-accent/50"
-                      whileHover={{ scale: 1.2 }}
-                    />
-                    <span className="text-xs text-muted-foreground">{post.author}</span>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                  </div>
+                  <motion.p
+                    className="text-3xl md:text-4xl font-black text-gradient-primary"
+                    initial={{ scale: 0 }}
+                    whileInView={{ scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ type: 'spring', delay: index * 0.1 + 0.2 }}
+                  >
+                    {stat.value}
+                  </motion.p>
+                  <p className="text-muted-foreground mt-1">{stat.label}</p>
                 </motion.div>
               ))}
-
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Button 
-                  variant="outline" 
-                  className="w-full rounded-xl border-white/10 hover:bg-white/5"
-                >
-                  View All Posts
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </motion.div>
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -606,13 +518,13 @@ const Landing = () => {
         viewport={{ once: true }}
       >
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <motion.p
-            initial={{ y: 20 }}
-            whileInView={{ y: 0 }}
-            viewport={{ once: true }}
-          >
-            © 2026 Anime Finder. All rights reserved.
-          </motion.p>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <span className="font-bold text-foreground">NERO FINDER</span>
+          </div>
+          <p className="text-sm">
+            © 2026 NERO FINDER. All rights reserved.
+          </p>
         </div>
       </motion.footer>
 
