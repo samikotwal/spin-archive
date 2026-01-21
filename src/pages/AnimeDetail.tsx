@@ -4,12 +4,16 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, Star, Calendar, Clock, Film, Tv, Users, 
   Heart, Play, Share2, BookOpen, Award, TrendingUp,
-  ChevronDown, ChevronUp, ExternalLink
+  ChevronDown, ChevronUp, ExternalLink, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import FloatingParticles from '@/components/FloatingParticles';
+import RelatedAnime from '@/components/RelatedAnime';
 import { useLenis } from '@/hooks/useLenis';
+import { useAuth } from '@/hooks/useAuth';
+import { useFavorites } from '@/hooks/useFavorites';
+import { toast } from 'sonner';
 
 interface AnimeDetail {
   mal_id: number;
@@ -61,7 +65,11 @@ const AnimeDetail = () => {
   const [anime, setAnime] = useState<AnimeDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showFullSynopsis, setShowFullSynopsis] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
+  
+  const { user } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
+
+  const isInFavorites = anime ? isFavorite(anime.mal_id) : false;
 
   useEffect(() => {
     const fetchAnimeDetail = async () => {
@@ -81,6 +89,21 @@ const AnimeDetail = () => {
 
     fetchAnimeDetail();
   }, [id]);
+
+  const handleFavoriteClick = async () => {
+    if (!user) {
+      toast.error('Please login to add favorites');
+      return;
+    }
+    if (!anime) return;
+
+    await toggleFavorite({
+      mal_id: anime.mal_id,
+      title: anime.title,
+      image_url: anime.images.jpg.large_image_url,
+      score: anime.score,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -150,21 +173,28 @@ const AnimeDetail = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background/50" />
         </motion.div>
 
-        {/* Back Button */}
+        {/* Header */}
         <motion.div 
-          className="absolute top-6 left-6 z-20"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
+          className="absolute top-0 left-0 right-0 z-20 p-4 md:p-6"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="bg-background/50 backdrop-blur-md hover:bg-background/70 rounded-full w-12 h-12"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+          <div className="container mx-auto flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="bg-background/50 backdrop-blur-md hover:bg-background/70 rounded-full w-12 h-12"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <span className="font-bold text-foreground">NERO<span className="text-primary">FINDER</span></span>
+            </div>
+          </div>
         </motion.div>
 
         {/* Main Content */}
@@ -352,11 +382,11 @@ const AnimeDetail = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className={`rounded-full px-6 py-6 border-white/10 ${isFavorite ? 'bg-red-500/20 border-red-500/50 text-red-400' : ''}`}
-                  onClick={() => setIsFavorite(!isFavorite)}
+                  className={`rounded-full px-6 py-6 border-white/10 ${isInFavorites ? 'bg-red-500/20 border-red-500/50 text-red-400' : ''}`}
+                  onClick={handleFavoriteClick}
                 >
-                  <Heart className={`w-5 h-5 mr-2 ${isFavorite ? 'fill-red-400' : ''}`} />
-                  {isFavorite ? 'Added' : 'Add to List'}
+                  <Heart className={`w-5 h-5 mr-2 ${isInFavorites ? 'fill-red-400' : ''}`} />
+                  {isInFavorites ? 'In Favorites' : 'Add to Favorites'}
                 </Button>
                 <Button variant="outline" className="rounded-full px-6 py-6 border-white/10">
                   <Share2 className="w-5 h-5" />
@@ -451,6 +481,9 @@ const AnimeDetail = () => {
                 </div>
               </motion.div>
             )}
+
+            {/* Related Anime */}
+            <RelatedAnime animeId={anime.mal_id} genres={anime.genres} />
           </div>
 
           {/* Sidebar Info */}
@@ -569,7 +602,11 @@ const AnimeDetail = () => {
       {/* Footer */}
       <footer className="border-t border-white/10 py-8">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>© 2026 Anime Finder. All rights reserved.</p>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="font-bold text-foreground text-sm">NERO FINDER</span>
+          </div>
+          <p className="text-sm">© 2026 NERO FINDER. All rights reserved.</p>
         </div>
       </footer>
     </div>
