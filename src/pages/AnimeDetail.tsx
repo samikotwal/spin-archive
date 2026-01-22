@@ -4,12 +4,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, Star, Calendar, Clock, Film, Tv, Users, 
   Heart, Play, Share2, BookOpen, Award, TrendingUp,
-  ChevronDown, ChevronUp, ExternalLink, Sparkles
+  ChevronDown, ChevronUp, ExternalLink, Sparkles, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import FloatingParticles from '@/components/FloatingParticles';
 import RelatedAnime from '@/components/RelatedAnime';
+import EpisodeList from '@/components/EpisodeList';
 import { useLenis } from '@/hooks/useLenis';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -482,6 +483,13 @@ const AnimeDetail = () => {
               </motion.div>
             )}
 
+            {/* Episode List */}
+            <EpisodeList 
+              animeId={anime.mal_id} 
+              animeName={anime.title} 
+              totalEpisodes={anime.episodes}
+            />
+
             {/* Related Anime */}
             <RelatedAnime animeId={anime.mal_id} genres={anime.genres} />
           </div>
@@ -599,14 +607,26 @@ const AnimeDetail = () => {
         </div>
       </motion.div>
 
-      {/* Footer */}
+      {/* Footer with Legal Disclaimer */}
       <footer className="border-t border-white/10 py-8">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="flex items-center justify-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="font-bold text-foreground text-sm">NERO FINDER</span>
           </div>
+          
+          {/* Legal Disclaimer */}
+          <div className="max-w-2xl mx-auto mb-4 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+            <div className="flex items-center justify-center gap-2 text-yellow-400/80 text-xs">
+              <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+              <p>We do not host any video content. All anime are linked from official free platforms.</p>
+            </div>
+          </div>
+          
           <p className="text-sm">© 2026 NERO FINDER. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">
+            100% Free & Legal Anime Discovery
+          </p>
         </div>
       </footer>
     </div>
