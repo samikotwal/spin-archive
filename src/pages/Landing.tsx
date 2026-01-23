@@ -1,14 +1,18 @@
-import { useState, useEffect } from 'react';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, Star, ChevronRight, Heart, Disc3 } from 'lucide-react';
+import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, ChevronRight, Heart, Disc3, Bell, Calendar, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import FloatingParticles from '@/components/FloatingParticles';
 import HeroBackground from '@/components/HeroBackground';
 import { AuthModal } from '@/components/AuthModal';
+import GenrePicker from '@/components/GenrePicker';
+import NotificationBell from '@/components/NotificationBell';
+import AnimeSectionEnhanced from '@/components/AnimeSectionEnhanced';
 import { useLenis } from '@/hooks/useLenis';
 import { useAuth } from '@/hooks/useAuth';
+import { useAnimeData } from '@/hooks/useAnimeData';
 import { toast } from 'sonner';
 
 const Landing = () => {
@@ -20,6 +24,31 @@ const Landing = () => {
 
   const { user, signOut } = useAuth();
   const { scrollY } = useScroll();
+  
+  const {
+    popularAnime,
+    topAiringAnime,
+    upcomingAnime,
+    animeMovies,
+    tvSeriesAnime,
+    recommendedAnime,
+    isLoadingPopular,
+    isLoadingAiring,
+    isLoadingUpcoming,
+    isLoadingMovies,
+    isLoadingTV,
+    isLoadingRecommended,
+    hasMorePopular,
+    hasMoreAiring,
+    hasMoreUpcoming,
+    hasMoreMovies,
+    hasMoreTV,
+    loadMorePopular,
+    loadMoreAiring,
+    loadMoreUpcoming,
+    loadMoreMovies,
+    loadMoreTV,
+  } = useAnimeData();
   
   const headerOpacity = useTransform(scrollY, [0, 100], [0.8, 1]);
   const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
@@ -207,10 +236,11 @@ const Landing = () => {
                 </Button>
               </motion.div>
 
-              {user ? (
-                <div className="flex items-center gap-2">
-                  <motion.div 
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20"
+              {/* Notifications */}
+              <NotificationBell />
+
+              {/* Genre Picker */}
+              <GenrePicker />
                     whileHover={{ scale: 1.05, borderColor: 'hsl(262 83% 58% / 0.5)' }}
                   >
                     <User className="w-4 h-4 text-primary" />
