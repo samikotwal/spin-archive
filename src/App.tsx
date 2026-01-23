@@ -9,6 +9,7 @@ import SavedLists from "./pages/SavedLists";
 import AnimeFinder from "./pages/AnimeFinder";
 import AnimeDetail from "./pages/AnimeDetail";
 import Favorites from "./pages/Favorites";
+import GenrePage from "./pages/GenrePage";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/explore" element={<AnimeFinder />} />
           <Route path="/anime/:id" element={<AnimeDetail />} />
+          <Route path="/genre" element={<GenrePage />} />
           <Route path="/wheel" element={<Index />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/saved" element={<SavedLists />} />
