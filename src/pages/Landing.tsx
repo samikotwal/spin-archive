@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, ChevronRight, Heart, Disc3, Bell, Calendar, Star } from 'lucide-react';
+import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, ChevronRight, Heart, Disc3, Calendar, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import FloatingParticles from '@/components/FloatingParticles';
@@ -10,6 +10,7 @@ import { AuthModal } from '@/components/AuthModal';
 import GenrePicker from '@/components/GenrePicker';
 import NotificationBell from '@/components/NotificationBell';
 import AnimeSectionEnhanced from '@/components/AnimeSectionEnhanced';
+import SidebarCategories from '@/components/SidebarCategories';
 import { useLenis } from '@/hooks/useLenis';
 import { useAuth } from '@/hooks/useAuth';
 import { useAnimeData } from '@/hooks/useAnimeData';
@@ -436,77 +437,146 @@ const Landing = () => {
       </motion.section>
 
       {/* Features Section */}
-      <section className="py-20 relative z-10">
+      <section className="py-12 relative z-10">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-8"
           >
-            <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">
+            <h2 className="text-2xl md:text-3xl font-black text-foreground mb-3">
               Discover Features
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
               Everything you need to find your next favorite anime
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.id}
-                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -10, scale: 1.02 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ y: -5, scale: 1.02 }}
                 onClick={feature.action}
-                className="glass rounded-2xl p-6 border border-white/5 hover:border-primary/30 cursor-pointer group relative overflow-hidden"
+                className="glass rounded-xl p-4 border border-white/5 hover:border-primary/30 cursor-pointer group relative overflow-hidden"
               >
-                {/* Gradient Background on Hover */}
                 <motion.div
                   className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}
                 />
                 
                 <motion.div
-                  className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4 relative z-10`}
+                  className={`w-10 h-10 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center mb-3 relative z-10`}
                   whileHover={{ rotate: 10, scale: 1.1 }}
                 >
-                  <feature.icon className="w-7 h-7 text-white" />
+                  <feature.icon className="w-5 h-5 text-white" />
                 </motion.div>
                 
-                <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors relative z-10">
+                <h3 className="text-sm font-bold text-foreground mb-1 group-hover:text-primary transition-colors relative z-10">
                   {feature.title}
                 </h3>
-                <p className="text-muted-foreground text-sm relative z-10">
+                <p className="text-muted-foreground text-xs relative z-10 line-clamp-2">
                   {feature.description}
                 </p>
-                
-                <motion.div
-                  className="flex items-center gap-1 mt-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity relative z-10"
-                  initial={{ x: -10 }}
-                  whileHover={{ x: 0 }}
-                >
-                  <span className="text-sm font-medium">Explore</span>
-                  <ChevronRight className="w-4 h-4" />
-                </motion.div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* Main Dashboard with Sidebar */}
+      <section className="py-8 relative z-10">
+        <div className="container mx-auto px-4">
+          <div className="flex gap-6">
+            {/* Sidebar - Hidden on mobile */}
+            <div className="hidden lg:block w-64 flex-shrink-0">
+              <SidebarCategories />
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1 min-w-0">
+              {/* Top Anime */}
+              <AnimeSectionEnhanced
+                title="🔥 Top Anime"
+                icon={<Star className="w-5 h-5 text-white" />}
+                anime={popularAnime}
+                isLoading={isLoadingPopular}
+                onLoadMore={loadMorePopular}
+                hasMore={hasMorePopular}
+                showWatchlist
+              />
+
+              {/* Top Airing */}
+              <AnimeSectionEnhanced
+                title="📺 Top Airing"
+                icon={<Flame className="w-5 h-5 text-white" />}
+                anime={topAiringAnime}
+                isLoading={isLoadingAiring}
+                onLoadMore={loadMoreAiring}
+                hasMore={hasMoreAiring}
+                showWatchlist
+              />
+
+              {/* Recommended For You */}
+              <AnimeSectionEnhanced
+                title="✨ Recommended For You"
+                icon={<Sparkles className="w-5 h-5 text-white" />}
+                anime={recommendedAnime}
+                isLoading={isLoadingRecommended}
+                showWatchlist
+              />
+
+              {/* Anime Movies */}
+              <AnimeSectionEnhanced
+                title="🎬 Anime Movies"
+                icon={<Film className="w-5 h-5 text-white" />}
+                anime={animeMovies}
+                isLoading={isLoadingMovies}
+                onLoadMore={loadMoreMovies}
+                hasMore={hasMoreMovies}
+                showWatchlist
+              />
+
+              {/* TV Series */}
+              <AnimeSectionEnhanced
+                title="📡 TV Series"
+                icon={<Tv className="w-5 h-5 text-white" />}
+                anime={tvSeriesAnime}
+                isLoading={isLoadingTV}
+                onLoadMore={loadMoreTV}
+                hasMore={hasMoreTV}
+                showWatchlist
+              />
+
+              {/* Upcoming Anime */}
+              <AnimeSectionEnhanced
+                title="📅 Upcoming Anime"
+                icon={<Calendar className="w-5 h-5 text-white" />}
+                anime={upcomingAnime}
+                isLoading={isLoadingUpcoming}
+                onLoadMore={loadMoreUpcoming}
+                hasMore={hasMoreUpcoming}
+                showWatchlist
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Stats Section */}
-      <section className="py-16 relative z-10">
+      <section className="py-12 relative z-10">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="glass rounded-3xl p-8 md:p-12 border border-white/5"
+            className="glass rounded-2xl p-6 md:p-10 border border-white/5"
           >
-            <div className="grid md:grid-cols-4 gap-8 text-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               {[
                 { value: '50K+', label: 'Anime Titles', icon: '🎬' },
                 { value: '1M+', label: 'Episodes', icon: '📺' },
@@ -522,14 +592,14 @@ const Landing = () => {
                   whileHover={{ scale: 1.05 }}
                 >
                   <motion.span
-                    className="text-4xl block mb-2"
+                    className="text-3xl block mb-2"
                     animate={{ rotate: [0, 10, -10, 0] }}
                     transition={{ duration: 2, repeat: Infinity, delay: index * 0.5 }}
                   >
                     {stat.icon}
                   </motion.span>
                   <motion.p
-                    className="text-3xl md:text-4xl font-black text-gradient-primary"
+                    className="text-2xl md:text-3xl font-black text-gradient-primary"
                     initial={{ scale: 0 }}
                     whileInView={{ scale: 1 }}
                     viewport={{ once: true }}
@@ -537,7 +607,7 @@ const Landing = () => {
                   >
                     {stat.value}
                   </motion.p>
-                  <p className="text-muted-foreground mt-1">{stat.label}</p>
+                  <p className="text-muted-foreground text-sm mt-1">{stat.label}</p>
                 </motion.div>
               ))}
             </div>
