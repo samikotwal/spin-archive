@@ -241,6 +241,11 @@ const Landing = () => {
 
               {/* Genre Picker */}
               <GenrePicker />
+
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <motion.div 
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 border border-white/10"
                     whileHover={{ scale: 1.05, borderColor: 'hsl(262 83% 58% / 0.5)' }}
                   >
                     <User className="w-4 h-4 text-primary" />
