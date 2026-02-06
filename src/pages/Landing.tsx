@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, ChevronRight, Heart, Disc3, Calendar, Star } from 'lucide-react';
+import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, ChevronRight, Heart, Disc3, Calendar, Star, Award, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import FloatingParticles from '@/components/FloatingParticles';
@@ -11,6 +11,8 @@ import GenrePicker from '@/components/GenrePicker';
 import NotificationBell from '@/components/NotificationBell';
 import AnimeSectionEnhanced from '@/components/AnimeSectionEnhanced';
 import SidebarCategories from '@/components/SidebarCategories';
+import GenreQuickFilters from '@/components/GenreQuickFilters';
+import ContinueWatchingSection from '@/components/ContinueWatchingSection';
 import { useLenis } from '@/hooks/useLenis';
 import { useAuth } from '@/hooks/useAuth';
 import { useAnimeData } from '@/hooks/useAnimeData';
@@ -499,6 +501,12 @@ const Landing = () => {
 
             {/* Main Content */}
             <div className="flex-1 min-w-0">
+              {/* Genre Quick Filters */}
+              <GenreQuickFilters />
+
+              {/* Continue Watching Section */}
+              <ContinueWatchingSection />
+
               {/* Top Anime */}
               <AnimeSectionEnhanced
                 title="🔥 Top Anime"
@@ -507,6 +515,24 @@ const Landing = () => {
                 isLoading={isLoadingPopular}
                 onLoadMore={loadMorePopular}
                 hasMore={hasMorePopular}
+                showWatchlist
+              />
+
+              {/* New This Season */}
+              <AnimeSectionEnhanced
+                title="🌟 New This Season"
+                icon={<Zap className="w-5 h-5 text-white" />}
+                anime={topAiringAnime.slice(0, 12)}
+                isLoading={isLoadingAiring}
+                showWatchlist
+              />
+
+              {/* Award Winners */}
+              <AnimeSectionEnhanced
+                title="🏆 Award Winners"
+                icon={<Award className="w-5 h-5 text-white" />}
+                anime={popularAnime.slice(0, 10)}
+                isLoading={isLoadingPopular}
                 showWatchlist
               />
 
