@@ -26,22 +26,26 @@ interface UseAnimeDataReturn {
   topAiringAnime: Anime[];
   tvSeriesAnime: Anime[];
   recommendedAnime: Anime[];
+  recentlyAddedAnime: Anime[];
   isLoadingPopular: boolean;
   isLoadingMovies: boolean;
   isLoadingUpcoming: boolean;
   isLoadingAiring: boolean;
   isLoadingTV: boolean;
   isLoadingRecommended: boolean;
+  isLoadingRecent: boolean;
   hasMorePopular: boolean;
   hasMoreMovies: boolean;
   hasMoreUpcoming: boolean;
   hasMoreAiring: boolean;
   hasMoreTV: boolean;
+  hasMoreRecent: boolean;
   loadMorePopular: () => void;
   loadMoreMovies: () => void;
   loadMoreUpcoming: () => void;
   loadMoreAiring: () => void;
   loadMoreTV: () => void;
+  loadMoreRecent: () => void;
   searchAnime: (query: string) => Promise<Anime[]>;
   searchResults: Anime[];
   isSearching: boolean;
@@ -58,6 +62,7 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   const [topAiringAnime, setTopAiringAnime] = useState<Anime[]>([]);
   const [tvSeriesAnime, setTvSeriesAnime] = useState<Anime[]>([]);
   const [recommendedAnime, setRecommendedAnime] = useState<Anime[]>([]);
+  const [recentlyAddedAnime, setRecentlyAddedAnime] = useState<Anime[]>([]);
   const [searchResults, setSearchResults] = useState<Anime[]>([]);
 
   const [isLoadingPopular, setIsLoadingPopular] = useState(true);
@@ -66,6 +71,7 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   const [isLoadingAiring, setIsLoadingAiring] = useState(true);
   const [isLoadingTV, setIsLoadingTV] = useState(true);
   const [isLoadingRecommended, setIsLoadingRecommended] = useState(true);
+  const [isLoadingRecent, setIsLoadingRecent] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
 
   const [popularPage, setPopularPage] = useState(1);
@@ -73,12 +79,14 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   const [upcomingPage, setUpcomingPage] = useState(1);
   const [airingPage, setAiringPage] = useState(1);
   const [tvPage, setTvPage] = useState(1);
+  const [recentPage, setRecentPage] = useState(1);
 
   const [hasMorePopular, setHasMorePopular] = useState(true);
   const [hasMoreMovies, setHasMoreMovies] = useState(true);
   const [hasMoreUpcoming, setHasMoreUpcoming] = useState(true);
   const [hasMoreAiring, setHasMoreAiring] = useState(true);
   const [hasMoreTV, setHasMoreTV] = useState(true);
+  const [hasMoreRecent, setHasMoreRecent] = useState(true);
 
   const fetchFromApi = async (endpoint: string, category: string): Promise<Anime[]> => {
     // Check cache first
@@ -187,10 +195,21 @@ export const useAnimeData = (): UseAnimeDataReturn => {
 
   const loadRecommended = async () => {
     setIsLoadingRecommended(true);
-    // Get a mix of highly rated anime for recommendations
     const data = await fetchFromApi(`/top/anime?filter=bypopularity&limit=20`, 'recommended');
     setRecommendedAnime(data);
     setIsLoadingRecommended(false);
+  };
+
+  const loadRecent = async (page: number) => {
+    setIsLoadingRecent(true);
+    const data = await fetchFromApi(`/seasons/now?page=${page}&limit=18&order_by=start_date&sort=desc`, `recent_${page}`);
+    if (page === 1) {
+      setRecentlyAddedAnime(data);
+    } else {
+      setRecentlyAddedAnime(prev => [...prev, ...data]);
+    }
+    setHasMoreRecent(data.length === 18);
+    setIsLoadingRecent(false);
   };
 
   const searchAnime = async (query: string): Promise<Anime[]> => {
@@ -222,6 +241,7 @@ export const useAnimeData = (): UseAnimeDataReturn => {
     setTimeout(() => loadUpcoming(1), 1500);
     setTimeout(() => loadTV(1), 2000);
     setTimeout(() => loadRecommended(), 2500);
+    setTimeout(() => loadRecent(1), 3000);
   }, []);
 
   const loadMorePopular = () => {
@@ -254,6 +274,12 @@ export const useAnimeData = (): UseAnimeDataReturn => {
     loadTV(nextPage);
   };
 
+  const loadMoreRecent = () => {
+    const nextPage = recentPage + 1;
+    setRecentPage(nextPage);
+    loadRecent(nextPage);
+  };
+
   return {
     popularAnime,
     animeMovies,
@@ -262,22 +288,26 @@ export const useAnimeData = (): UseAnimeDataReturn => {
     topAiringAnime,
     tvSeriesAnime,
     recommendedAnime,
+    recentlyAddedAnime,
     isLoadingPopular,
     isLoadingMovies,
     isLoadingUpcoming,
     isLoadingAiring,
     isLoadingTV,
     isLoadingRecommended,
+    isLoadingRecent,
     hasMorePopular,
     hasMoreMovies,
     hasMoreUpcoming,
     hasMoreAiring,
     hasMoreTV,
+    hasMoreRecent,
     loadMorePopular,
     loadMoreMovies,
     loadMoreUpcoming,
     loadMoreAiring,
     loadMoreTV,
+    loadMoreRecent,
     searchAnime,
     searchResults,
     isSearching,
