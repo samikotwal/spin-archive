@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, ChevronRight, Heart, Disc3, Calendar, Star, Award, Zap } from 'lucide-react';
+import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, ChevronRight, Heart, Disc3, Calendar, Star, Award, Zap, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import FloatingParticles from '@/components/FloatingParticles';
 import HeroBackground from '@/components/HeroBackground';
 import { AuthModal } from '@/components/AuthModal';
 import GenrePicker from '@/components/GenrePicker';
 import NotificationBell from '@/components/NotificationBell';
-import AnimeSectionEnhanced from '@/components/AnimeSectionEnhanced';
+import AnimeSectionGrid from '@/components/AnimeSectionGrid';
 import SidebarCategories from '@/components/SidebarCategories';
 import GenreQuickFilters from '@/components/GenreQuickFilters';
 import ContinueWatchingSection from '@/components/ContinueWatchingSection';
+import SearchSuggestions from '@/components/SearchSuggestions';
 import { useLenis } from '@/hooks/useLenis';
 import { useAuth } from '@/hooks/useAuth';
 import { useAnimeData } from '@/hooks/useAnimeData';
@@ -21,7 +21,6 @@ import { toast } from 'sonner';
 const Landing = () => {
   useLenis();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
 
@@ -35,34 +34,31 @@ const Landing = () => {
     animeMovies,
     tvSeriesAnime,
     recommendedAnime,
+    recentlyAddedAnime,
     isLoadingPopular,
     isLoadingAiring,
     isLoadingUpcoming,
     isLoadingMovies,
     isLoadingTV,
     isLoadingRecommended,
+    isLoadingRecent,
     hasMorePopular,
     hasMoreAiring,
     hasMoreUpcoming,
     hasMoreMovies,
     hasMoreTV,
+    hasMoreRecent,
     loadMorePopular,
     loadMoreAiring,
     loadMoreUpcoming,
     loadMoreMovies,
     loadMoreTV,
+    loadMoreRecent,
   } = useAnimeData();
   
   const headerOpacity = useTransform(scrollY, [0, 100], [0.8, 1]);
   const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
   const heroY = useTransform(scrollY, [0, 300], [0, 50]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/explore?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
 
   const handleLogout = async () => {
     await signOut();
@@ -96,17 +92,6 @@ const Landing = () => {
     { id: 'tv', label: 'TV Series', icon: Tv },
     { id: 'popular', label: 'Most Popular', icon: TrendingUp },
     { id: 'airing', label: 'Top Airing', icon: Flame },
-  ];
-
-  const topSearches = [
-    "Solo Leveling Season 2",
-    "Sakamoto Days",
-    "One Piece",
-    "The Apothecary Diaries",
-    "Blue Lock",
-    "Frieren",
-    "Jujutsu Kaisen",
-    "Demon Slayer",
   ];
 
   const features = [
@@ -334,70 +319,12 @@ const Landing = () => {
               </motion.p>
             </motion.div>
 
-            {/* Search Box */}
-            <motion.form
-              variants={itemVariants}
-              onSubmit={handleSearch}
-              className="mb-6"
-            >
-              <motion.div 
-                className="flex gap-2"
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-              >
-                <div className="flex-1 relative group">
-                  <Input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search anime..."
-                    className="h-14 pl-6 pr-4 bg-card/50 border-white/10 rounded-xl text-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                  />
-                  <motion.div 
-                    className="absolute inset-0 -z-10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity blur-xl"
-                    style={{
-                      background: 'linear-gradient(135deg, hsl(262 83% 58% / 0.2), hsl(338 90% 56% / 0.2))',
-                    }}
-                  />
-                </div>
-                <motion.div
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Button 
-                    type="submit"
-                    className="h-14 w-14 bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-xl"
-                  >
-                    <Search className="w-5 h-5" />
-                  </Button>
-                </motion.div>
-              </motion.div>
-            </motion.form>
-
-            {/* Top Searches */}
-            <motion.div variants={itemVariants} className="mb-8">
-              <p className="text-sm text-muted-foreground mb-3">
-                <span className="text-primary font-semibold">🔥 Trending:</span>
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {topSearches.map((search, i) => (
-                  <motion.button
-                    key={i}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.5 + i * 0.05, type: 'spring' }}
-                    whileHover={{ scale: 1.1, y: -3 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      setSearchQuery(search);
-                      navigate(`/explore?q=${encodeURIComponent(search)}`);
-                    }}
-                    className="px-3 py-1.5 rounded-full text-sm bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary border border-white/5 hover:border-primary/30 transition-all"
-                  >
-                    {search}
-                  </motion.button>
-                ))}
-              </div>
+            {/* Search Box with Autocomplete */}
+            <motion.div variants={itemVariants} className="mb-6">
+              <SearchSuggestions onSearch={(q) => navigate(`/explore?q=${encodeURIComponent(q)}`)} />
             </motion.div>
+
+
 
             {/* CTA Buttons */}
             <motion.div variants={itemVariants} className="flex flex-wrap gap-4">
@@ -508,7 +435,7 @@ const Landing = () => {
               <ContinueWatchingSection />
 
               {/* Top Anime */}
-              <AnimeSectionEnhanced
+              <AnimeSectionGrid
                 title="🔥 Top Anime"
                 icon={<Star className="w-5 h-5 text-white" />}
                 anime={popularAnime}
@@ -518,26 +445,19 @@ const Landing = () => {
                 showWatchlist
               />
 
-              {/* New This Season */}
-              <AnimeSectionEnhanced
-                title="🌟 New This Season"
-                icon={<Zap className="w-5 h-5 text-white" />}
-                anime={topAiringAnime.slice(0, 12)}
-                isLoading={isLoadingAiring}
-                showWatchlist
-              />
-
-              {/* Award Winners */}
-              <AnimeSectionEnhanced
-                title="🏆 Award Winners"
-                icon={<Award className="w-5 h-5 text-white" />}
-                anime={popularAnime.slice(0, 10)}
-                isLoading={isLoadingPopular}
+              {/* Recently Added */}
+              <AnimeSectionGrid
+                title="🆕 Recently Added"
+                icon={<Clock className="w-5 h-5 text-white" />}
+                anime={recentlyAddedAnime}
+                isLoading={isLoadingRecent}
+                onLoadMore={loadMoreRecent}
+                hasMore={hasMoreRecent}
                 showWatchlist
               />
 
               {/* Top Airing */}
-              <AnimeSectionEnhanced
+              <AnimeSectionGrid
                 title="📺 Top Airing"
                 icon={<Flame className="w-5 h-5 text-white" />}
                 anime={topAiringAnime}
@@ -548,7 +468,7 @@ const Landing = () => {
               />
 
               {/* Recommended For You */}
-              <AnimeSectionEnhanced
+              <AnimeSectionGrid
                 title="✨ Recommended For You"
                 icon={<Sparkles className="w-5 h-5 text-white" />}
                 anime={recommendedAnime}
@@ -557,7 +477,7 @@ const Landing = () => {
               />
 
               {/* Anime Movies */}
-              <AnimeSectionEnhanced
+              <AnimeSectionGrid
                 title="🎬 Anime Movies"
                 icon={<Film className="w-5 h-5 text-white" />}
                 anime={animeMovies}
@@ -568,7 +488,7 @@ const Landing = () => {
               />
 
               {/* TV Series */}
-              <AnimeSectionEnhanced
+              <AnimeSectionGrid
                 title="📡 TV Series"
                 icon={<Tv className="w-5 h-5 text-white" />}
                 anime={tvSeriesAnime}
@@ -579,13 +499,22 @@ const Landing = () => {
               />
 
               {/* Upcoming Anime */}
-              <AnimeSectionEnhanced
+              <AnimeSectionGrid
                 title="📅 Upcoming Anime"
                 icon={<Calendar className="w-5 h-5 text-white" />}
                 anime={upcomingAnime}
                 isLoading={isLoadingUpcoming}
                 onLoadMore={loadMoreUpcoming}
                 hasMore={hasMoreUpcoming}
+                showWatchlist
+              />
+
+              {/* Award Winners */}
+              <AnimeSectionGrid
+                title="🏆 Most Popular"
+                icon={<Award className="w-5 h-5 text-white" />}
+                anime={popularAnime.slice(0, 10)}
+                isLoading={isLoadingPopular}
                 showWatchlist
               />
             </div>
