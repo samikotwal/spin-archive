@@ -11,6 +11,7 @@ import AnimeDetail from "./pages/AnimeDetail";
 import Favorites from "./pages/Favorites";
 import GenrePage from "./pages/GenrePage";
 import Auth from "./pages/Auth";
+import AlphabetBrowse from "./pages/AlphabetBrowse";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/wheel" element={<Index />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/saved" element={<SavedLists />} />
+          <Route path="/browse/:letter" element={<AlphabetBrowse />} />
           <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
