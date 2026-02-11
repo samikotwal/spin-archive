@@ -8,7 +8,7 @@ import AnimeCardEnhanced from '@/components/AnimeCardEnhanced';
 import AnimeSectionGrid from '@/components/AnimeSectionGrid';
 import GenreQuickFilters from '@/components/GenreQuickFilters';
 import ContinueWatchingSection from '@/components/ContinueWatchingSection';
-import SidebarCategories from '@/components/SidebarCategories';
+import AlphabetFilter from '@/components/AlphabetFilter';
 import FloatingParticles from '@/components/FloatingParticles';
 import { AuthModal } from '@/components/AuthModal';
 import { useAnimeData } from '@/hooks/useAnimeData';
@@ -192,7 +192,7 @@ const AnimeFinder = () => {
           <div className="flex gap-6">
             {/* Sidebar */}
             <div className="hidden lg:block w-64 flex-shrink-0">
-              <SidebarCategories />
+              <AlphabetFilter />
             </div>
 
             {/* Main Content */}

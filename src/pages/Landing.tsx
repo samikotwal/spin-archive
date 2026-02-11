@@ -9,7 +9,7 @@ import { AuthModal } from '@/components/AuthModal';
 import GenrePicker from '@/components/GenrePicker';
 import NotificationBell from '@/components/NotificationBell';
 import AnimeSectionGrid from '@/components/AnimeSectionGrid';
-import SidebarCategories from '@/components/SidebarCategories';
+import AlphabetFilter from '@/components/AlphabetFilter';
 import GenreQuickFilters from '@/components/GenreQuickFilters';
 import ContinueWatchingSection from '@/components/ContinueWatchingSection';
 import SearchSuggestions from '@/components/SearchSuggestions';
@@ -423,7 +423,7 @@ const Landing = () => {
           <div className="flex gap-6">
             {/* Sidebar - Hidden on mobile */}
             <div className="hidden lg:block w-64 flex-shrink-0">
-              <SidebarCategories />
+              <AlphabetFilter />
             </div>
 
             {/* Main Content */}
