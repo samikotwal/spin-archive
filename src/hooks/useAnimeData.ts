@@ -221,9 +221,20 @@ export const useAnimeData = (): UseAnimeDataReturn => {
     setIsSearching(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 400));
-      const response = await fetch(`${JIKAN_API}/anime?q=${encodeURIComponent(query)}&limit=24`);
+      const response = await fetch(`${JIKAN_API}/anime?q=${encodeURIComponent(query)}&limit=24&order_by=score&sort=desc`);
       const json = await response.json();
-      const results = json.data || [];
+      let results: Anime[] = json.data || [];
+      
+      // Sort: top-rated first, push hentai genre to end
+      const hentaiGenreId = 12;
+      const isHentai = (anime: any) => {
+        return anime.genres?.some((g: any) => g.mal_id === hentaiGenreId || g.name?.toLowerCase() === 'hentai');
+      };
+      
+      const nonHentai = results.filter((a: any) => !isHentai(a));
+      const hentai = results.filter((a: any) => isHentai(a));
+      results = [...nonHentai, ...hentai];
+      
       setSearchResults(results);
       return results;
     } catch (error) {
