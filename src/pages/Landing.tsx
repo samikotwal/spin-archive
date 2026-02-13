@@ -157,7 +157,7 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background overflow-x-hidden pb-16 md:pb-0">
       <FloatingParticles />
 
       {/* Header Navigation */}
