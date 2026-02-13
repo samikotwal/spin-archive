@@ -13,6 +13,7 @@ import GenrePage from "./pages/GenrePage";
 import Auth from "./pages/Auth";
 import AlphabetBrowse from "./pages/AlphabetBrowse";
 import NotFound from "./pages/NotFound";
+import MobileBottomNav from "./components/MobileBottomNav";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <MobileBottomNav />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
