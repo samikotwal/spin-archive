@@ -1,21 +1,16 @@
 import { useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, ChevronRight, Heart, Disc3, Calendar, Star, Award, Zap, Clock } from 'lucide-react';
+import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, Disc3, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import FloatingParticles from '@/components/FloatingParticles';
 import HeroBackground from '@/components/HeroBackground';
 import { AuthModal } from '@/components/AuthModal';
 import GenrePicker from '@/components/GenrePicker';
 import NotificationBell from '@/components/NotificationBell';
-import AnimeSectionGrid from '@/components/AnimeSectionGrid';
-import AlphabetFilter from '@/components/AlphabetFilter';
-import GenreQuickFilters from '@/components/GenreQuickFilters';
-import ContinueWatchingSection from '@/components/ContinueWatchingSection';
 import SearchSuggestions from '@/components/SearchSuggestions';
 import { useLenis } from '@/hooks/useLenis';
 import { useAuth } from '@/hooks/useAuth';
-import { useAnimeData } from '@/hooks/useAnimeData';
 import { toast } from 'sonner';
 
 const Landing = () => {
@@ -27,34 +22,6 @@ const Landing = () => {
   const { user, signOut } = useAuth();
   const { scrollY } = useScroll();
   
-  const {
-    popularAnime,
-    topAiringAnime,
-    upcomingAnime,
-    animeMovies,
-    tvSeriesAnime,
-    recommendedAnime,
-    recentlyAddedAnime,
-    isLoadingPopular,
-    isLoadingAiring,
-    isLoadingUpcoming,
-    isLoadingMovies,
-    isLoadingTV,
-    isLoadingRecommended,
-    isLoadingRecent,
-    hasMorePopular,
-    hasMoreAiring,
-    hasMoreUpcoming,
-    hasMoreMovies,
-    hasMoreTV,
-    hasMoreRecent,
-    loadMorePopular,
-    loadMoreAiring,
-    loadMoreUpcoming,
-    loadMoreMovies,
-    loadMoreTV,
-    loadMoreRecent,
-  } = useAnimeData();
   
   const headerOpacity = useTransform(scrollY, [0, 100], [0.8, 1]);
   const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
@@ -417,110 +384,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Main Dashboard with Sidebar */}
-      <section className="py-8 relative z-10">
-        <div className="container mx-auto px-4">
-          <div className="flex gap-6">
-            {/* Sidebar - Hidden on mobile */}
-            <div className="hidden lg:block w-64 flex-shrink-0">
-              <AlphabetFilter />
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 min-w-0">
-              {/* Genre Quick Filters */}
-              <GenreQuickFilters />
-
-              {/* Continue Watching Section */}
-              <ContinueWatchingSection />
-
-              {/* Top Anime */}
-              <AnimeSectionGrid
-                title="🔥 Top Anime"
-                icon={<Star className="w-5 h-5 text-white" />}
-                anime={popularAnime}
-                isLoading={isLoadingPopular}
-                onLoadMore={loadMorePopular}
-                hasMore={hasMorePopular}
-                showWatchlist
-              />
-
-              {/* Recently Added */}
-              <AnimeSectionGrid
-                title="🆕 Recently Added"
-                icon={<Clock className="w-5 h-5 text-white" />}
-                anime={recentlyAddedAnime}
-                isLoading={isLoadingRecent}
-                onLoadMore={loadMoreRecent}
-                hasMore={hasMoreRecent}
-                showWatchlist
-              />
-
-              {/* Top Airing */}
-              <AnimeSectionGrid
-                title="📺 Top Airing"
-                icon={<Flame className="w-5 h-5 text-white" />}
-                anime={topAiringAnime}
-                isLoading={isLoadingAiring}
-                onLoadMore={loadMoreAiring}
-                hasMore={hasMoreAiring}
-                showWatchlist
-              />
-
-              {/* Recommended For You */}
-              <AnimeSectionGrid
-                title="✨ Recommended For You"
-                icon={<Sparkles className="w-5 h-5 text-white" />}
-                anime={recommendedAnime}
-                isLoading={isLoadingRecommended}
-                showWatchlist
-              />
-
-              {/* Anime Movies */}
-              <AnimeSectionGrid
-                title="🎬 Anime Movies"
-                icon={<Film className="w-5 h-5 text-white" />}
-                anime={animeMovies}
-                isLoading={isLoadingMovies}
-                onLoadMore={loadMoreMovies}
-                hasMore={hasMoreMovies}
-                showWatchlist
-              />
-
-              {/* TV Series */}
-              <AnimeSectionGrid
-                title="📡 TV Series"
-                icon={<Tv className="w-5 h-5 text-white" />}
-                anime={tvSeriesAnime}
-                isLoading={isLoadingTV}
-                onLoadMore={loadMoreTV}
-                hasMore={hasMoreTV}
-                showWatchlist
-              />
-
-              {/* Upcoming Anime */}
-              <AnimeSectionGrid
-                title="📅 Upcoming Anime"
-                icon={<Calendar className="w-5 h-5 text-white" />}
-                anime={upcomingAnime}
-                isLoading={isLoadingUpcoming}
-                onLoadMore={loadMoreUpcoming}
-                hasMore={hasMoreUpcoming}
-                showWatchlist
-              />
-
-              {/* Award Winners */}
-              <AnimeSectionGrid
-                title="🏆 Most Popular"
-                icon={<Award className="w-5 h-5 text-white" />}
-                anime={popularAnime.slice(0, 10)}
-                isLoading={isLoadingPopular}
-                showWatchlist
-              />
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Stats Section */}
       <section className="py-12 relative z-10">

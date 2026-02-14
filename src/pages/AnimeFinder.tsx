@@ -228,9 +228,9 @@ const AnimeFinder = () => {
 
             {/* Main Content + Sidebar */}
             <div className="flex gap-6">
-              {/* Main Content */}
+              {/* Main Content - alongside sidebar */}
               <div className="flex-1 min-w-0">
-                {/* Latest Episodes / Trending Grid */}
+                {/* Trending Grid */}
                 <AnimeSectionGrid
                   title="🔥 Trending Now"
                   icon={<TrendingUp className="w-5 h-5 text-white" />}
@@ -243,9 +243,6 @@ const AnimeFinder = () => {
 
                 {/* Continue Watching */}
                 <ContinueWatchingSection />
-
-                {/* Airing Schedule */}
-                <AiringSchedule />
 
                 {/* Recently Added */}
                 <AnimeSectionGrid
@@ -268,39 +265,6 @@ const AnimeFinder = () => {
                   hasMore={hasMorePopular}
                   showWatchlist
                 />
-
-                {/* Movies */}
-                <AnimeSectionGrid
-                  title="🎬 Movies"
-                  icon={<Film className="w-5 h-5 text-white" />}
-                  anime={animeMovies}
-                  isLoading={isLoadingMovies}
-                  onLoadMore={loadMoreMovies}
-                  hasMore={hasMoreMovies}
-                  showWatchlist
-                />
-
-                {/* TV Series */}
-                <AnimeSectionGrid
-                  title="📡 TV Series"
-                  icon={<Tv className="w-5 h-5 text-white" />}
-                  anime={tvSeriesAnime}
-                  isLoading={isLoadingTV}
-                  onLoadMore={loadMoreTV}
-                  hasMore={hasMoreTV}
-                  showWatchlist
-                />
-
-                {/* Upcoming */}
-                <AnimeSectionGrid
-                  title="📅 Upcoming"
-                  icon={<Calendar className="w-5 h-5 text-white" />}
-                  anime={upcomingAnime}
-                  isLoading={isLoadingUpcoming}
-                  onLoadMore={loadMoreUpcoming}
-                  hasMore={hasMoreUpcoming}
-                  showWatchlist
-                />
               </div>
 
               {/* Right Sidebar - Genre + Most Viewed */}
@@ -308,6 +272,45 @@ const AnimeFinder = () => {
                 <GenreSidebar />
                 <MostViewedSidebar anime={popularAnime} isLoading={isLoadingPopular} />
               </div>
+            </div>
+
+            {/* Full-width sections after sidebar */}
+            <div className="mt-10 space-y-10">
+              {/* Movies */}
+              <AnimeSectionGrid
+                title="🎬 Movies"
+                icon={<Film className="w-5 h-5 text-white" />}
+                anime={animeMovies}
+                isLoading={isLoadingMovies}
+                onLoadMore={loadMoreMovies}
+                hasMore={hasMoreMovies}
+                showWatchlist
+              />
+
+              {/* TV Series */}
+              <AnimeSectionGrid
+                title="📡 TV Series"
+                icon={<Tv className="w-5 h-5 text-white" />}
+                anime={tvSeriesAnime}
+                isLoading={isLoadingTV}
+                onLoadMore={loadMoreTV}
+                hasMore={hasMoreTV}
+                showWatchlist
+              />
+
+              {/* Upcoming */}
+              <AnimeSectionGrid
+                title="📅 Upcoming"
+                icon={<Calendar className="w-5 h-5 text-white" />}
+                anime={upcomingAnime}
+                isLoading={isLoadingUpcoming}
+                onLoadMore={loadMoreUpcoming}
+                hasMore={hasMoreUpcoming}
+                showWatchlist
+              />
+
+              {/* Airing Schedule - at the bottom */}
+              <AiringSchedule />
             </div>
           </div>
         )}
