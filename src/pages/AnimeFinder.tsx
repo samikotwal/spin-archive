@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AnimeCardEnhanced from '@/components/AnimeCardEnhanced';
 import AnimeSectionGrid from '@/components/AnimeSectionGrid';
-import GenreQuickFilters from '@/components/GenreQuickFilters';
+import AnimeColumnList from '@/components/AnimeColumnList';
+import GenreSidebar from '@/components/GenreSidebar';
+import MostViewedSidebar from '@/components/MostViewedSidebar';
+import AiringSchedule from '@/components/AiringSchedule';
+import AZFooter from '@/components/AZFooter';
 import ContinueWatchingSection from '@/components/ContinueWatchingSection';
-import AlphabetFilter from '@/components/AlphabetFilter';
 import FloatingParticles from '@/components/FloatingParticles';
 import FeaturedSlideshow from '@/components/FeaturedSlideshow';
 import { AuthModal } from '@/components/AuthModal';
@@ -83,6 +86,11 @@ const AnimeFinder = () => {
   };
 
   const isSearchMode = searchQuery.length > 0;
+
+  // Derive "completed" anime from popularAnime (finished airing)
+  const completedAnime = popularAnime.filter(a => 
+    a.status?.toLowerCase().includes('finished') || !a.airing
+  );
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden pb-16 md:pb-0">
@@ -183,42 +191,63 @@ const AnimeFinder = () => {
             {/* Featured Slideshow */}
             <FeaturedSlideshow anime={topAiringAnime} isLoading={isLoadingAiring} />
 
-            {/* Genre Quick Filters */}
-            <GenreQuickFilters />
-
-            {/* Trending Section */}
-            <AnimeSectionGrid
-              title="🔥 Trending Now"
-              icon={<TrendingUp className="w-5 h-5 text-white" />}
-              anime={topAiringAnime}
-              isLoading={isLoadingAiring}
-              onLoadMore={loadMoreAiring}
-              hasMore={hasMoreAiring}
-              showWatchlist
-            />
-
-            {/* Continue Watching */}
-            <ContinueWatchingSection />
-
-            {/* Main Content with Sidebar */}
-            <div className="flex gap-6">
-              {/* Sidebar */}
-              <div className="hidden lg:block w-64 flex-shrink-0">
-                <AlphabetFilter />
-              </div>
-
-              {/* Content Sections */}
-              <div className="flex-1 min-w-0">
-                <AnimeSectionGrid
-                  title="⭐ Top Anime"
-                  icon={<Star className="w-5 h-5 text-white" />}
+            {/* 4-Column Layout: Popular | New Release | Top Airing | Completed */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mb-10"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <AnimeColumnList
+                  title="Popular"
                   anime={popularAnime}
                   isLoading={isLoadingPopular}
-                  onLoadMore={loadMorePopular}
-                  hasMore={hasMorePopular}
+                  titleColor="text-accent"
+                />
+                <AnimeColumnList
+                  title="New Release"
+                  anime={recentlyAddedAnime}
+                  isLoading={isLoadingRecent}
+                  titleColor="text-green-400"
+                />
+                <AnimeColumnList
+                  title="Top Airing"
+                  anime={topAiringAnime}
+                  isLoading={isLoadingAiring}
+                  titleColor="text-primary"
+                />
+                <AnimeColumnList
+                  title="Completed"
+                  anime={completedAnime}
+                  isLoading={isLoadingPopular}
+                  titleColor="text-blue-400"
+                />
+              </div>
+            </motion.section>
+
+            {/* Main Content + Sidebar */}
+            <div className="flex gap-6">
+              {/* Main Content */}
+              <div className="flex-1 min-w-0">
+                {/* Latest Episodes / Trending Grid */}
+                <AnimeSectionGrid
+                  title="🔥 Trending Now"
+                  icon={<TrendingUp className="w-5 h-5 text-white" />}
+                  anime={topAiringAnime}
+                  isLoading={isLoadingAiring}
+                  onLoadMore={loadMoreAiring}
+                  hasMore={hasMoreAiring}
                   showWatchlist
                 />
 
+                {/* Continue Watching */}
+                <ContinueWatchingSection />
+
+                {/* Airing Schedule */}
+                <AiringSchedule />
+
+                {/* Recently Added */}
                 <AnimeSectionGrid
                   title="🆕 Recently Added"
                   icon={<Clock className="w-5 h-5 text-white" />}
@@ -229,14 +258,18 @@ const AnimeFinder = () => {
                   showWatchlist
                 />
 
+                {/* Top Anime */}
                 <AnimeSectionGrid
-                  title="✨ Recommended"
-                  icon={<Sparkles className="w-5 h-5 text-white" />}
-                  anime={recommendedAnime}
-                  isLoading={isLoadingRecommended}
+                  title="⭐ Top Anime"
+                  icon={<Star className="w-5 h-5 text-white" />}
+                  anime={popularAnime}
+                  isLoading={isLoadingPopular}
+                  onLoadMore={loadMorePopular}
+                  hasMore={hasMorePopular}
                   showWatchlist
                 />
 
+                {/* Movies */}
                 <AnimeSectionGrid
                   title="🎬 Movies"
                   icon={<Film className="w-5 h-5 text-white" />}
@@ -247,6 +280,7 @@ const AnimeFinder = () => {
                   showWatchlist
                 />
 
+                {/* TV Series */}
                 <AnimeSectionGrid
                   title="📡 TV Series"
                   icon={<Tv className="w-5 h-5 text-white" />}
@@ -257,6 +291,7 @@ const AnimeFinder = () => {
                   showWatchlist
                 />
 
+                {/* Upcoming */}
                 <AnimeSectionGrid
                   title="📅 Upcoming"
                   icon={<Calendar className="w-5 h-5 text-white" />}
@@ -266,22 +301,23 @@ const AnimeFinder = () => {
                   hasMore={hasMoreUpcoming}
                   showWatchlist
                 />
+              </div>
 
-                <AnimeSectionGrid
-                  title="🏆 Most Popular"
-                  icon={<Award className="w-5 h-5 text-white" />}
-                  anime={popularAnime.slice(0, 10)}
-                  isLoading={isLoadingPopular}
-                  showWatchlist
-                />
+              {/* Right Sidebar - Genre + Most Viewed */}
+              <div className="hidden lg:block w-72 flex-shrink-0 space-y-8">
+                <GenreSidebar />
+                <MostViewedSidebar anime={popularAnime} isLoading={isLoadingPopular} />
               </div>
             </div>
           </div>
         )}
       </main>
 
+      {/* A-Z Footer */}
+      <AZFooter />
+
       {/* Footer */}
-      <footer className="border-t border-white/10 py-6 mt-8">
+      <footer className="border-t border-white/10 py-6">
         <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-primary" />
