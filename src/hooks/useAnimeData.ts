@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Anime {
@@ -16,6 +16,7 @@ interface Anime {
   status?: string;
   episodes?: number | null;
   airing?: boolean;
+  genres?: { mal_id: number; name: string }[];
 }
 
 interface UseAnimeDataReturn {
@@ -52,7 +53,31 @@ interface UseAnimeDataReturn {
 }
 
 const JIKAN_API = 'https://api.jikan.moe/v4';
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+const CACHE_DURATION = 30 * 60 * 1000;
+
+// Simple queue to handle Jikan rate limiting (3 req/sec)
+const apiQueue: (() => void)[] = [];
+let processing = false;
+
+const processQueue = () => {
+  if (processing || apiQueue.length === 0) return;
+  processing = true;
+  const next = apiQueue.shift()!;
+  next();
+  setTimeout(() => {
+    processing = false;
+    processQueue();
+  }, 350);
+};
+
+const queuedFetch = (url: string): Promise<Response> => {
+  return new Promise((resolve, reject) => {
+    apiQueue.push(() => {
+      fetch(url).then(resolve).catch(reject);
+    });
+    processQueue();
+  });
+};
 
 export const useAnimeData = (): UseAnimeDataReturn => {
   const [popularAnime, setPopularAnime] = useState<Anime[]>([]);
@@ -89,46 +114,39 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   const [hasMoreRecent, setHasMoreRecent] = useState(true);
 
   const fetchFromApi = async (endpoint: string, category: string): Promise<Anime[]> => {
-    // Check cache first
-    const { data: cachedData } = await supabase
-      .from('anime_cache')
-      .select('*')
-      .eq('category', category)
-      .single();
-
-    if (cachedData) {
-      const fetchedAt = new Date(cachedData.fetched_at).getTime();
-      if (Date.now() - fetchedAt < CACHE_DURATION) {
-        return (cachedData.data as unknown) as Anime[];
-      }
-    }
-
-    // Fetch from API with rate limiting
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
+    // Check cache first (parallel-safe)
     try {
-      const response = await fetch(`${JIKAN_API}${endpoint}`);
+      const { data: cachedData } = await supabase
+        .from('anime_cache')
+        .select('*')
+        .eq('category', category)
+        .single();
+
+      if (cachedData) {
+        const fetchedAt = new Date(cachedData.fetched_at).getTime();
+        if (Date.now() - fetchedAt < CACHE_DURATION) {
+          return (cachedData.data as unknown) as Anime[];
+        }
+      }
+
+      // Use queued fetch for rate limiting
+      const response = await queuedFetch(`${JIKAN_API}${endpoint}`);
       if (!response.ok) throw new Error('API request failed');
       
       const json = await response.json();
       const animes = json.data || [];
 
-      // Update cache
+      // Update cache (fire and forget)
       if (cachedData) {
-        await supabase
-          .from('anime_cache')
-          .update({ data: animes, fetched_at: new Date().toISOString() })
-          .eq('category', category);
+        supabase.from('anime_cache').update({ data: animes, fetched_at: new Date().toISOString() }).eq('category', category).then(() => {});
       } else {
-        await supabase
-          .from('anime_cache')
-          .insert({ category, data: animes });
+        supabase.from('anime_cache').insert({ category, data: animes }).then(() => {});
       }
 
       return animes;
     } catch (error) {
       console.error('Error fetching anime:', error);
-      return cachedData ? ((cachedData.data as unknown) as Anime[]) : [];
+      return [];
     }
   };
 
@@ -148,11 +166,8 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   const loadMovies = async (page: number) => {
     setIsLoadingMovies(true);
     const data = await fetchFromApi(`/top/anime?type=movie&page=${page}&limit=18`, `movies_${page}`);
-    if (page === 1) {
-      setAnimeMovies(data);
-    } else {
-      setAnimeMovies(prev => [...prev, ...data]);
-    }
+    if (page === 1) setAnimeMovies(data);
+    else setAnimeMovies(prev => [...prev, ...data]);
     setHasMoreMovies(data.length === 18);
     setIsLoadingMovies(false);
   };
@@ -160,11 +175,8 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   const loadUpcoming = async (page: number) => {
     setIsLoadingUpcoming(true);
     const data = await fetchFromApi(`/seasons/upcoming?page=${page}&limit=18`, `upcoming_${page}`);
-    if (page === 1) {
-      setUpcomingAnime(data);
-    } else {
-      setUpcomingAnime(prev => [...prev, ...data]);
-    }
+    if (page === 1) setUpcomingAnime(data);
+    else setUpcomingAnime(prev => [...prev, ...data]);
     setHasMoreUpcoming(data.length === 18);
     setIsLoadingUpcoming(false);
   };
@@ -172,11 +184,8 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   const loadAiring = async (page: number) => {
     setIsLoadingAiring(true);
     const data = await fetchFromApi(`/top/anime?filter=airing&page=${page}&limit=18`, `airing_${page}`);
-    if (page === 1) {
-      setTopAiringAnime(data);
-    } else {
-      setTopAiringAnime(prev => [...prev, ...data]);
-    }
+    if (page === 1) setTopAiringAnime(data);
+    else setTopAiringAnime(prev => [...prev, ...data]);
     setHasMoreAiring(data.length === 18);
     setIsLoadingAiring(false);
   };
@@ -184,11 +193,8 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   const loadTV = async (page: number) => {
     setIsLoadingTV(true);
     const data = await fetchFromApi(`/top/anime?type=tv&page=${page}&limit=18`, `tv_${page}`);
-    if (page === 1) {
-      setTvSeriesAnime(data);
-    } else {
-      setTvSeriesAnime(prev => [...prev, ...data]);
-    }
+    if (page === 1) setTvSeriesAnime(data);
+    else setTvSeriesAnime(prev => [...prev, ...data]);
     setHasMoreTV(data.length === 18);
     setIsLoadingTV(false);
   };
@@ -203,11 +209,8 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   const loadRecent = async (page: number) => {
     setIsLoadingRecent(true);
     const data = await fetchFromApi(`/seasons/now?page=${page}&limit=18&order_by=start_date&sort=desc`, `recent_${page}`);
-    if (page === 1) {
-      setRecentlyAddedAnime(data);
-    } else {
-      setRecentlyAddedAnime(prev => [...prev, ...data]);
-    }
+    if (page === 1) setRecentlyAddedAnime(data);
+    else setRecentlyAddedAnime(prev => [...prev, ...data]);
     setHasMoreRecent(data.length === 18);
     setIsLoadingRecent(false);
   };
@@ -217,24 +220,16 @@ export const useAnimeData = (): UseAnimeDataReturn => {
       setSearchResults([]);
       return [];
     }
-
     setIsSearching(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 400));
-      const response = await fetch(`${JIKAN_API}/anime?q=${encodeURIComponent(query)}&limit=24&order_by=score&sort=desc`);
+      const response = await queuedFetch(`${JIKAN_API}/anime?q=${encodeURIComponent(query)}&limit=24&order_by=score&sort=desc`);
       const json = await response.json();
       let results: Anime[] = json.data || [];
       
-      // Sort: top-rated first, push hentai genre to end
-      const hentaiGenreId = 12;
-      const isHentai = (anime: any) => {
-        return anime.genres?.some((g: any) => g.mal_id === hentaiGenreId || g.name?.toLowerCase() === 'hentai');
-      };
+      const isHentai = (anime: any) =>
+        anime.genres?.some((g: any) => g.mal_id === 12 || g.name?.toLowerCase() === 'hentai');
       
-      const nonHentai = results.filter((a: any) => !isHentai(a));
-      const hentai = results.filter((a: any) => isHentai(a));
-      results = [...nonHentai, ...hentai];
-      
+      results = [...results.filter((a: any) => !isHentai(a)), ...results.filter((a: any) => isHentai(a))];
       setSearchResults(results);
       return results;
     } catch (error) {
@@ -246,81 +241,30 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   };
 
   useEffect(() => {
+    // Fire all initial loads - the queue handles rate limiting
     loadPopular(1);
-    setTimeout(() => loadAiring(1), 500);
-    setTimeout(() => loadMovies(1), 1000);
-    setTimeout(() => loadUpcoming(1), 1500);
-    setTimeout(() => loadTV(1), 2000);
-    setTimeout(() => loadRecommended(), 2500);
-    setTimeout(() => loadRecent(1), 3000);
+    loadAiring(1);
+    loadMovies(1);
+    loadUpcoming(1);
+    loadTV(1);
+    loadRecommended();
+    loadRecent(1);
   }, []);
 
-  const loadMorePopular = () => {
-    const nextPage = popularPage + 1;
-    setPopularPage(nextPage);
-    loadPopular(nextPage);
-  };
-
-  const loadMoreMovies = () => {
-    const nextPage = moviesPage + 1;
-    setMoviesPage(nextPage);
-    loadMovies(nextPage);
-  };
-
-  const loadMoreUpcoming = () => {
-    const nextPage = upcomingPage + 1;
-    setUpcomingPage(nextPage);
-    loadUpcoming(nextPage);
-  };
-
-  const loadMoreAiring = () => {
-    const nextPage = airingPage + 1;
-    setAiringPage(nextPage);
-    loadAiring(nextPage);
-  };
-
-  const loadMoreTV = () => {
-    const nextPage = tvPage + 1;
-    setTvPage(nextPage);
-    loadTV(nextPage);
-  };
-
-  const loadMoreRecent = () => {
-    const nextPage = recentPage + 1;
-    setRecentPage(nextPage);
-    loadRecent(nextPage);
-  };
+  const loadMorePopular = () => { const p = popularPage + 1; setPopularPage(p); loadPopular(p); };
+  const loadMoreMovies = () => { const p = moviesPage + 1; setMoviesPage(p); loadMovies(p); };
+  const loadMoreUpcoming = () => { const p = upcomingPage + 1; setUpcomingPage(p); loadUpcoming(p); };
+  const loadMoreAiring = () => { const p = airingPage + 1; setAiringPage(p); loadAiring(p); };
+  const loadMoreTV = () => { const p = tvPage + 1; setTvPage(p); loadTV(p); };
+  const loadMoreRecent = () => { const p = recentPage + 1; setRecentPage(p); loadRecent(p); };
 
   return {
-    popularAnime,
-    animeMovies,
-    upcomingAnime,
-    featuredAnime,
-    topAiringAnime,
-    tvSeriesAnime,
-    recommendedAnime,
-    recentlyAddedAnime,
-    isLoadingPopular,
-    isLoadingMovies,
-    isLoadingUpcoming,
-    isLoadingAiring,
-    isLoadingTV,
-    isLoadingRecommended,
-    isLoadingRecent,
-    hasMorePopular,
-    hasMoreMovies,
-    hasMoreUpcoming,
-    hasMoreAiring,
-    hasMoreTV,
-    hasMoreRecent,
-    loadMorePopular,
-    loadMoreMovies,
-    loadMoreUpcoming,
-    loadMoreAiring,
-    loadMoreTV,
-    loadMoreRecent,
-    searchAnime,
-    searchResults,
-    isSearching,
+    popularAnime, animeMovies, upcomingAnime, featuredAnime, topAiringAnime,
+    tvSeriesAnime, recommendedAnime, recentlyAddedAnime,
+    isLoadingPopular, isLoadingMovies, isLoadingUpcoming, isLoadingAiring,
+    isLoadingTV, isLoadingRecommended, isLoadingRecent,
+    hasMorePopular, hasMoreMovies, hasMoreUpcoming, hasMoreAiring, hasMoreTV, hasMoreRecent,
+    loadMorePopular, loadMoreMovies, loadMoreUpcoming, loadMoreAiring, loadMoreTV, loadMoreRecent,
+    searchAnime, searchResults, isSearching,
   };
 };

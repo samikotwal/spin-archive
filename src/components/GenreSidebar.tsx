@@ -3,22 +3,28 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-const allGenres = [
-  'Action', 'Adventure', 'Cars', 'Comedy', 'Dementia', 'Demons',
-  'Drama', 'Ecchi', 'Fantasy', 'Game', 'Harem', 'Historical',
-  'Horror', 'Isekai', 'Josei', 'Kids', 'Magic', 'Martial Arts',
-  'Mecha', 'Military', 'Music', 'Mystery', 'Parody', 'Police',
-  'Psychological', 'Romance', 'Samurai', 'School', 'Sci-Fi',
-  'Seinen', 'Shoujo', 'Shounen', 'Slice of Life', 'Space',
-  'Sports', 'Super Power', 'Supernatural', 'Thriller', 'Vampire',
-];
+// Genre name -> Jikan genre ID mapping
+const genreMap: Record<string, number> = {
+  'Action': 1, 'Adventure': 2, 'Comedy': 4, 'Drama': 8,
+  'Ecchi': 9, 'Fantasy': 10, 'Horror': 14, 'Mystery': 7,
+  'Romance': 22, 'Sci-Fi': 24, 'Slice of Life': 36, 'Sports': 30,
+  'Supernatural': 37, 'Thriller': 41, 'Mecha': 18, 'Music': 19,
+  'Psychological': 40, 'Shounen': 27, 'Shoujo': 25, 'Seinen': 42,
+  'Josei': 43, 'Kids': 15, 'Military': 38, 'Police': 39,
+  'Space': 29, 'Vampire': 32, 'Harem': 35, 'Historical': 13,
+  'Martial Arts': 17, 'Parody': 20, 'Samurai': 21, 'School': 23,
+  'Demons': 6, 'Magic': 16, 'Super Power': 31, 'Game': 11,
+  'Isekai': 62, 'Cars': 3, 'Dementia': 5,
+};
+
+const allGenres = Object.keys(genreMap);
 
 const GenreSidebar = () => {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
 
   const displayedGenres = showAll ? allGenres : allGenres.slice(0, 18);
-  const highlightedGenres = ['Action', 'Adventure', 'Drama', 'Ecchi', 'Fantasy', 'Game', 'Isekai', 'Kids', 'Magic'];
+  const highlightedGenres = ['Action', 'Adventure', 'Drama', 'Fantasy', 'Romance', 'Shounen', 'Sci-Fi', 'Comedy', 'Supernatural'];
 
   return (
     <div>
@@ -29,7 +35,7 @@ const GenreSidebar = () => {
             key={genre}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate(`/genre/${encodeURIComponent(genre.toLowerCase())}`)}
+            onClick={() => navigate(`/genre/${encodeURIComponent(genre.toLowerCase())}?genreId=${genreMap[genre]}&name=${encodeURIComponent(genre)}`)}
             className={`text-xs py-1.5 px-2 rounded-md transition-colors text-left truncate ${
               highlightedGenres.includes(genre)
                 ? 'text-accent hover:text-primary font-medium'
