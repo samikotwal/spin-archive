@@ -265,49 +265,52 @@ const AnimeFinder = () => {
                   hasMore={hasMorePopular}
                   showWatchlist
                 />
+
+                {/* Movies - starts full width after sidebar content ends */}
+                <AnimeSectionGrid
+                  title="🎬 Movies"
+                  icon={<Film className="w-5 h-5 text-white" />}
+                  anime={animeMovies}
+                  isLoading={isLoadingMovies}
+                  onLoadMore={loadMoreMovies}
+                  hasMore={hasMoreMovies}
+                  showWatchlist
+                />
+
+                {/* TV Series */}
+                <AnimeSectionGrid
+                  title="📡 TV Series"
+                  icon={<Tv className="w-5 h-5 text-white" />}
+                  anime={tvSeriesAnime}
+                  isLoading={isLoadingTV}
+                  onLoadMore={loadMoreTV}
+                  hasMore={hasMoreTV}
+                  showWatchlist
+                />
+
+                {/* Upcoming */}
+                <AnimeSectionGrid
+                  title="📅 Upcoming"
+                  icon={<Calendar className="w-5 h-5 text-white" />}
+                  anime={upcomingAnime}
+                  isLoading={isLoadingUpcoming}
+                  onLoadMore={loadMoreUpcoming}
+                  hasMore={hasMoreUpcoming}
+                  showWatchlist
+                />
               </div>
 
-              {/* Right Sidebar - Genre + Most Viewed */}
-              <div className="hidden lg:block w-72 flex-shrink-0 space-y-8">
-                <GenreSidebar />
-                <MostViewedSidebar anime={popularAnime} isLoading={isLoadingPopular} />
+              {/* Right Sidebar - Genre + Most Viewed - sticky follows scroll */}
+              <div className="hidden lg:block w-72 flex-shrink-0">
+                <div className="sticky top-20 space-y-8 max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-none">
+                  <GenreSidebar />
+                  <MostViewedSidebar anime={popularAnime} isLoading={isLoadingPopular} />
+                </div>
               </div>
             </div>
 
             {/* Full-width sections after sidebar */}
             <div className="mt-10 space-y-10">
-              {/* Movies */}
-              <AnimeSectionGrid
-                title="🎬 Movies"
-                icon={<Film className="w-5 h-5 text-white" />}
-                anime={animeMovies}
-                isLoading={isLoadingMovies}
-                onLoadMore={loadMoreMovies}
-                hasMore={hasMoreMovies}
-                showWatchlist
-              />
-
-              {/* TV Series */}
-              <AnimeSectionGrid
-                title="📡 TV Series"
-                icon={<Tv className="w-5 h-5 text-white" />}
-                anime={tvSeriesAnime}
-                isLoading={isLoadingTV}
-                onLoadMore={loadMoreTV}
-                hasMore={hasMoreTV}
-                showWatchlist
-              />
-
-              {/* Upcoming */}
-              <AnimeSectionGrid
-                title="📅 Upcoming"
-                icon={<Calendar className="w-5 h-5 text-white" />}
-                anime={upcomingAnime}
-                isLoading={isLoadingUpcoming}
-                onLoadMore={loadMoreUpcoming}
-                hasMore={hasMoreUpcoming}
-                showWatchlist
-              />
 
               {/* Airing Schedule - at the bottom */}
               <AiringSchedule />

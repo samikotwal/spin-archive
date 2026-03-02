@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Star, Film, Tv } from 'lucide-react';
+import { Star } from 'lucide-react';
 
 interface Anime {
   mal_id: number;
@@ -27,12 +27,11 @@ const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
     { id: 'month' as const, label: 'Month' },
   ];
 
-  // Use different slices for different tabs to simulate variety
   const getAnimeForTab = () => {
     switch (activeTab) {
-      case 'day': return anime.slice(0, 5);
-      case 'week': return anime.slice(2, 7);
-      case 'month': return anime.slice(4, 9);
+      case 'day': return anime.slice(0, 10);
+      case 'week': return anime.slice(2, 12);
+      case 'month': return anime.slice(4, 14);
     }
   };
 
@@ -42,7 +41,6 @@ const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
     <div>
       <h3 className="text-lg font-bold text-accent mb-3">Most Viewed</h3>
 
-      {/* Tabs */}
       <div className="flex rounded-xl overflow-hidden mb-4 border border-white/10">
         {tabs.map((tab) => (
           <button
@@ -59,10 +57,9 @@ const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
         ))}
       </div>
 
-      {/* List */}
       {isLoading ? (
         <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="flex gap-3 animate-pulse">
               <div className="w-8 h-8 bg-muted rounded-full" />
               <div className="w-12 h-16 bg-muted rounded-lg" />
@@ -80,25 +77,20 @@ const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
               key={`${activeTab}-${item.mal_id}`}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
+              transition={{ delay: index * 0.03 }}
               whileHover={{ x: -4 }}
               onClick={() => navigate(`/anime/${item.mal_id}`)}
               className="flex gap-3 cursor-pointer group items-start"
             >
-              {/* Rank Number */}
               <span className="text-2xl font-black text-muted-foreground/40 w-8 text-right flex-shrink-0 mt-1">
                 {String(index + 1).padStart(2, '0')}
               </span>
-
-              {/* Thumbnail */}
               <img
                 src={item.images.jpg.large_image_url}
                 alt={item.title}
                 className="w-12 h-16 rounded-lg object-cover flex-shrink-0"
                 loading="lazy"
               />
-
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
                   {item.title}
