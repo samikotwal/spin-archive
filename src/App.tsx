@@ -28,6 +28,7 @@ const App = () => (
           <Route path="/explore" element={<AnimeFinder />} />
           <Route path="/anime/:id" element={<AnimeDetail />} />
           <Route path="/genre" element={<GenrePage />} />
+          <Route path="/genre/:genreName" element={<GenrePage />} />
           <Route path="/wheel" element={<Index />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/saved" element={<SavedLists />} />
