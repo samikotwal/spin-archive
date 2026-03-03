@@ -35,7 +35,7 @@ const GenreSidebar = () => {
             key={genre}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate(`/genre/${encodeURIComponent(genre.toLowerCase())}?genreId=${genreMap[genre]}&name=${encodeURIComponent(genre)}`)}
+            onClick={() => navigate(`/genre/${encodeURIComponent(genre.toLowerCase())}?id=${genreMap[genre]}&name=${encodeURIComponent(genre)}`)}
             className={`text-xs py-1.5 px-2 rounded-md transition-colors text-left truncate ${
               highlightedGenres.includes(genre)
                 ? 'text-accent hover:text-primary font-medium'

@@ -5,24 +5,24 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const genres = [
-  { name: 'Action', emoji: '⚔️' },
-  { name: 'Adventure', emoji: '🗺️' },
-  { name: 'Comedy', emoji: '😂' },
-  { name: 'Drama', emoji: '🎭' },
-  { name: 'Fantasy', emoji: '🧙' },
-  { name: 'Romance', emoji: '💕' },
-  { name: 'Sci-Fi', emoji: '🚀' },
-  { name: 'Slice of Life', emoji: '☀️' },
-  { name: 'Supernatural', emoji: '👻' },
-  { name: 'Mystery', emoji: '🔍' },
-  { name: 'Thriller', emoji: '😱' },
-  { name: 'Horror', emoji: '🧟' },
-  { name: 'Sports', emoji: '⚽' },
-  { name: 'Mecha', emoji: '🤖' },
-  { name: 'Isekai', emoji: '🌀' },
-  { name: 'Shounen', emoji: '💪' },
-  { name: 'Seinen', emoji: '🎯' },
-  { name: 'Magic', emoji: '✨' },
+  { name: 'Action', emoji: '⚔️', id: 1 },
+  { name: 'Adventure', emoji: '🗺️', id: 2 },
+  { name: 'Comedy', emoji: '😂', id: 4 },
+  { name: 'Drama', emoji: '🎭', id: 8 },
+  { name: 'Fantasy', emoji: '🧙', id: 10 },
+  { name: 'Romance', emoji: '💕', id: 22 },
+  { name: 'Sci-Fi', emoji: '🚀', id: 24 },
+  { name: 'Slice of Life', emoji: '☀️', id: 36 },
+  { name: 'Supernatural', emoji: '👻', id: 37 },
+  { name: 'Mystery', emoji: '🔍', id: 7 },
+  { name: 'Thriller', emoji: '😱', id: 41 },
+  { name: 'Horror', emoji: '🧟', id: 14 },
+  { name: 'Sports', emoji: '⚽', id: 30 },
+  { name: 'Mecha', emoji: '🤖', id: 18 },
+  { name: 'Isekai', emoji: '🌀', id: 62 },
+  { name: 'Shounen', emoji: '💪', id: 27 },
+  { name: 'Seinen', emoji: '🎯', id: 42 },
+  { name: 'Magic', emoji: '✨', id: 16 },
 ];
 
 const GenreQuickFilters = () => {
@@ -73,7 +73,7 @@ const GenreQuickFilters = () => {
               transition={{ delay: index * 0.03 }}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(`/genre/${encodeURIComponent(genre.name.toLowerCase())}`)}
+              onClick={() => navigate(`/genre/${encodeURIComponent(genre.name.toLowerCase())}?id=${genre.id}&name=${encodeURIComponent(genre.name)}`)}
               className="flex-shrink-0 px-4 py-2 rounded-full bg-secondary/50 border border-white/10 hover:border-primary/50 hover:bg-primary/10 transition-all flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               <span>{genre.emoji}</span>

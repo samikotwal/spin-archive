@@ -105,7 +105,7 @@ const GenrePage = () => {
   const alphabet = Object.keys(groupedAnime).sort();
 
   return (
-    <div className="min-h-screen bg-background bg-animated-gradient overflow-x-hidden">
+    <div className="min-h-screen bg-background bg-animated-gradient overflow-x-hidden pb-16 md:pb-0">
       <FloatingParticles />
 
       {/* Header */}
