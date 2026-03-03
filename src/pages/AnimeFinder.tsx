@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, X, Sparkles, Heart, Dices, Star, Flame, Film, Tv, Calendar, Clock, Award, TrendingUp } from 'lucide-react';
+import { Search, X, Sparkles, Heart, Dices, Star, Film, Tv, Calendar, Clock, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AnimeCardEnhanced from '@/components/AnimeCardEnhanced';
@@ -35,14 +35,12 @@ const AnimeFinder = () => {
     upcomingAnime,
     animeMovies,
     tvSeriesAnime,
-    recommendedAnime,
     recentlyAddedAnime,
     isLoadingPopular,
     isLoadingAiring,
     isLoadingUpcoming,
     isLoadingMovies,
     isLoadingTV,
-    isLoadingRecommended,
     isLoadingRecent,
     hasMorePopular,
     hasMoreAiring,
@@ -87,8 +85,7 @@ const AnimeFinder = () => {
 
   const isSearchMode = searchQuery.length > 0;
 
-  // Derive "completed" anime from popularAnime (finished airing)
-  const completedAnime = popularAnime.filter(a => 
+  const completedAnime = popularAnime.filter(a =>
     a.status?.toLowerCase().includes('finished') || !a.airing
   );
 
@@ -147,7 +144,6 @@ const AnimeFinder = () => {
       </motion.header>
 
       <main className="container mx-auto px-4 py-6 relative z-10">
-        {/* Search Results Mode */}
         {isSearchMode ? (
           <div>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
@@ -186,12 +182,11 @@ const AnimeFinder = () => {
             )}
           </div>
         ) : (
-          /* Browse Mode */
           <div>
             {/* Featured Slideshow */}
             <FeaturedSlideshow anime={topAiringAnime} isLoading={isLoadingAiring} />
 
-            {/* 4-Column Layout: Popular | New Release | Top Airing | Completed */}
+            {/* 4-Column Layout */}
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -199,38 +194,16 @@ const AnimeFinder = () => {
               className="mb-10"
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <AnimeColumnList
-                  title="Popular"
-                  anime={popularAnime}
-                  isLoading={isLoadingPopular}
-                  titleColor="text-accent"
-                />
-                <AnimeColumnList
-                  title="New Release"
-                  anime={recentlyAddedAnime}
-                  isLoading={isLoadingRecent}
-                  titleColor="text-green-400"
-                />
-                <AnimeColumnList
-                  title="Top Airing"
-                  anime={topAiringAnime}
-                  isLoading={isLoadingAiring}
-                  titleColor="text-primary"
-                />
-                <AnimeColumnList
-                  title="Completed"
-                  anime={completedAnime}
-                  isLoading={isLoadingPopular}
-                  titleColor="text-blue-400"
-                />
+                <AnimeColumnList title="Popular" anime={popularAnime} isLoading={isLoadingPopular} titleColor="text-accent" />
+                <AnimeColumnList title="New Release" anime={recentlyAddedAnime} isLoading={isLoadingRecent} titleColor="text-green-400" />
+                <AnimeColumnList title="Top Airing" anime={topAiringAnime} isLoading={isLoadingAiring} titleColor="text-primary" />
+                <AnimeColumnList title="Completed" anime={completedAnime} isLoading={isLoadingPopular} titleColor="text-blue-400" />
               </div>
             </motion.section>
 
-            {/* Main Content + Sidebar */}
+            {/* Main Content + Sidebar — only Trending & Top Anime sit next to sidebar */}
             <div className="flex gap-6">
-              {/* Main Content - alongside sidebar */}
               <div className="flex-1 min-w-0">
-                {/* Trending Grid */}
                 <AnimeSectionGrid
                   title="🔥 Trending Now"
                   icon={<TrendingUp className="w-5 h-5 text-white" />}
@@ -241,21 +214,8 @@ const AnimeFinder = () => {
                   showWatchlist
                 />
 
-                {/* Continue Watching */}
                 <ContinueWatchingSection />
 
-                {/* Recently Added */}
-                <AnimeSectionGrid
-                  title="🆕 Recently Added"
-                  icon={<Clock className="w-5 h-5 text-white" />}
-                  anime={recentlyAddedAnime}
-                  isLoading={isLoadingRecent}
-                  onLoadMore={loadMoreRecent}
-                  hasMore={hasMoreRecent}
-                  showWatchlist
-                />
-
-                {/* Top Anime */}
                 <AnimeSectionGrid
                   title="⭐ Top Anime"
                   icon={<Star className="w-5 h-5 text-white" />}
@@ -265,42 +225,9 @@ const AnimeFinder = () => {
                   hasMore={hasMorePopular}
                   showWatchlist
                 />
-
-                {/* Movies - starts full width after sidebar content ends */}
-                <AnimeSectionGrid
-                  title="🎬 Movies"
-                  icon={<Film className="w-5 h-5 text-white" />}
-                  anime={animeMovies}
-                  isLoading={isLoadingMovies}
-                  onLoadMore={loadMoreMovies}
-                  hasMore={hasMoreMovies}
-                  showWatchlist
-                />
-
-                {/* TV Series */}
-                <AnimeSectionGrid
-                  title="📡 TV Series"
-                  icon={<Tv className="w-5 h-5 text-white" />}
-                  anime={tvSeriesAnime}
-                  isLoading={isLoadingTV}
-                  onLoadMore={loadMoreTV}
-                  hasMore={hasMoreTV}
-                  showWatchlist
-                />
-
-                {/* Upcoming */}
-                <AnimeSectionGrid
-                  title="📅 Upcoming"
-                  icon={<Calendar className="w-5 h-5 text-white" />}
-                  anime={upcomingAnime}
-                  isLoading={isLoadingUpcoming}
-                  onLoadMore={loadMoreUpcoming}
-                  hasMore={hasMoreUpcoming}
-                  showWatchlist
-                />
               </div>
 
-              {/* Right Sidebar - Genre + Most Viewed - sticky follows scroll */}
+              {/* Right Sidebar — Genre + Most Viewed (20 items) */}
               <div className="hidden lg:block w-72 flex-shrink-0">
                 <div className="sticky top-20 space-y-8 max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-none">
                   <GenreSidebar />
@@ -309,20 +236,56 @@ const AnimeFinder = () => {
               </div>
             </div>
 
-            {/* Full-width sections after sidebar */}
-            <div className="mt-10 space-y-10">
+            {/* Full-width sections AFTER sidebar ends — starts with Recently Added */}
+            <div className="mt-10 space-y-0">
+              <AnimeSectionGrid
+                title="🆕 Recently Added"
+                icon={<Clock className="w-5 h-5 text-white" />}
+                anime={recentlyAddedAnime}
+                isLoading={isLoadingRecent}
+                onLoadMore={loadMoreRecent}
+                hasMore={hasMoreRecent}
+                showWatchlist
+              />
 
-              {/* Airing Schedule - at the bottom */}
+              <AnimeSectionGrid
+                title="🎬 Movies"
+                icon={<Film className="w-5 h-5 text-white" />}
+                anime={animeMovies}
+                isLoading={isLoadingMovies}
+                onLoadMore={loadMoreMovies}
+                hasMore={hasMoreMovies}
+                showWatchlist
+              />
+
+              <AnimeSectionGrid
+                title="📡 TV Series"
+                icon={<Tv className="w-5 h-5 text-white" />}
+                anime={tvSeriesAnime}
+                isLoading={isLoadingTV}
+                onLoadMore={loadMoreTV}
+                hasMore={hasMoreTV}
+                showWatchlist
+              />
+
+              <AnimeSectionGrid
+                title="📅 Upcoming"
+                icon={<Calendar className="w-5 h-5 text-white" />}
+                anime={upcomingAnime}
+                isLoading={isLoadingUpcoming}
+                onLoadMore={loadMoreUpcoming}
+                hasMore={hasMoreUpcoming}
+                showWatchlist
+              />
+
               <AiringSchedule />
             </div>
           </div>
         )}
       </main>
 
-      {/* A-Z Footer */}
       <AZFooter />
 
-      {/* Footer */}
       <footer className="border-t border-white/10 py-6">
         <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
           <div className="flex items-center justify-center gap-2 mb-2">

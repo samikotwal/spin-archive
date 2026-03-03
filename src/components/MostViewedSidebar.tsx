@@ -29,9 +29,9 @@ const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
 
   const getAnimeForTab = () => {
     switch (activeTab) {
-      case 'day': return anime.slice(0, 10);
-      case 'week': return anime.slice(2, 12);
-      case 'month': return anime.slice(4, 14);
+      case 'day': return anime.slice(0, 20);
+      case 'week': return anime.slice(2, 22);
+      case 'month': return anime.slice(4, 24);
     }
   };
 
@@ -59,7 +59,7 @@ const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
 
       {isLoading ? (
         <div className="space-y-3">
-          {Array.from({ length: 10 }).map((_, i) => (
+          {Array.from({ length: 20 }).map((_, i) => (
             <div key={i} className="flex gap-3 animate-pulse">
               <div className="w-8 h-8 bg-muted rounded-full" />
               <div className="w-12 h-16 bg-muted rounded-lg" />
@@ -77,7 +77,7 @@ const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
               key={`${activeTab}-${item.mal_id}`}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.03 }}
+              transition={{ delay: index * 0.02 }}
               whileHover={{ x: -4 }}
               onClick={() => navigate(`/anime/${item.mal_id}`)}
               className="flex gap-3 cursor-pointer group items-start"
