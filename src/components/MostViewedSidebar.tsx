@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Star } from 'lucide-react';
@@ -12,14 +12,15 @@ interface Anime {
   episodes?: number | null;
 }
 
-interface MostViewedSidebarProps {
-  anime: Anime[];
-  isLoading?: boolean;
-}
+const JIKAN_API = 'https://api.jikan.moe/v4';
 
-const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
+const MostViewedSidebar = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'day' | 'week' | 'month'>('day');
+  const [dayAnime, setDayAnime] = useState<Anime[]>([]);
+  const [weekAnime, setWeekAnime] = useState<Anime[]>([]);
+  const [monthAnime, setMonthAnime] = useState<Anime[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const tabs = [
     { id: 'day' as const, label: 'Day' },
@@ -27,15 +28,37 @@ const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
     { id: 'month' as const, label: 'Month' },
   ];
 
-  const getAnimeForTab = () => {
-    switch (activeTab) {
-      case 'day': return anime.slice(0, 20);
-      case 'week': return anime.slice(2, 22);
-      case 'month': return anime.slice(4, 24);
-    }
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch 25 items for each tab from different endpoints
+        const [dayRes, weekRes, monthRes] = await Promise.all([
+          fetch(`${JIKAN_API}/top/anime?filter=airing&limit=20`),
+          fetch(`${JIKAN_API}/top/anime?filter=bypopularity&limit=20`),
+          fetch(`${JIKAN_API}/top/anime?limit=20`),
+        ]);
 
-  const displayed = getAnimeForTab();
+        const [dayJson, weekJson, monthJson] = await Promise.all([
+          dayRes.json(),
+          weekRes.json(),
+          monthRes.json(),
+        ]);
+
+        setDayAnime(dayJson.data || []);
+        setWeekAnime(weekJson.data || []);
+        setMonthAnime(monthJson.data || []);
+      } catch (error) {
+        console.error('Error fetching most viewed:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const displayed = activeTab === 'day' ? dayAnime : activeTab === 'week' ? weekAnime : monthAnime;
 
   return (
     <div>
@@ -59,7 +82,7 @@ const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
 
       {isLoading ? (
         <div className="space-y-3">
-          {Array.from({ length: 20 }).map((_, i) => (
+          {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="flex gap-3 animate-pulse">
               <div className="w-8 h-8 bg-muted rounded-full" />
               <div className="w-12 h-16 bg-muted rounded-lg" />
@@ -72,7 +95,7 @@ const MostViewedSidebar = ({ anime, isLoading }: MostViewedSidebarProps) => {
         </div>
       ) : (
         <div className="space-y-3">
-          {displayed.map((item, index) => (
+          {displayed.slice(0, 20).map((item, index) => (
             <motion.div
               key={`${activeTab}-${item.mal_id}`}
               initial={{ opacity: 0, x: 10 }}
