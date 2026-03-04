@@ -231,7 +231,7 @@ const AnimeFinder = () => {
               <div className="hidden lg:block w-72 flex-shrink-0">
                 <div className="sticky top-20 space-y-8 max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-none">
                   <GenreSidebar />
-                  <MostViewedSidebar anime={popularAnime} isLoading={isLoadingPopular} />
+                  <MostViewedSidebar />
                 </div>
               </div>
             </div>

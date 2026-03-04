@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import FloatingParticles from '@/components/FloatingParticles';
 import RelatedAnime from '@/components/RelatedAnime';
 import EpisodeList from '@/components/EpisodeList';
+import TodayAiringSection from '@/components/TodayAiringSection';
 import { useLenis } from '@/hooks/useLenis';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -492,6 +493,9 @@ const AnimeDetail = () => {
 
             {/* Related Anime */}
             <RelatedAnime animeId={anime.mal_id} genres={anime.genres} />
+
+            {/* Today's Airing Anime */}
+            <TodayAiringSection />
           </div>
 
           {/* Sidebar Info */}
