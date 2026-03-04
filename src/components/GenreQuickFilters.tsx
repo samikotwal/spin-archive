@@ -15,7 +15,7 @@ const genres = [
   { name: 'Slice of Life', emoji: '☀️', id: 36 },
   { name: 'Supernatural', emoji: '👻', id: 37 },
   { name: 'Mystery', emoji: '🔍', id: 7 },
-  { name: 'Thriller', emoji: '😱', id: 41 },
+  { name: 'Suspense', emoji: '😱', id: 41 },
   { name: 'Horror', emoji: '🧟', id: 14 },
   { name: 'Sports', emoji: '⚽', id: 30 },
   { name: 'Mecha', emoji: '🤖', id: 18 },
@@ -23,6 +23,7 @@ const genres = [
   { name: 'Shounen', emoji: '💪', id: 27 },
   { name: 'Seinen', emoji: '🎯', id: 42 },
   { name: 'Magic', emoji: '✨', id: 16 },
+  { name: 'Hentai', emoji: '🔞', id: 12 },
 ];
 
 const GenreQuickFilters = () => {

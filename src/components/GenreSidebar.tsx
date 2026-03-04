@@ -8,13 +8,13 @@ const genreMap: Record<string, number> = {
   'Action': 1, 'Adventure': 2, 'Comedy': 4, 'Drama': 8,
   'Ecchi': 9, 'Fantasy': 10, 'Horror': 14, 'Mystery': 7,
   'Romance': 22, 'Sci-Fi': 24, 'Slice of Life': 36, 'Sports': 30,
-  'Supernatural': 37, 'Thriller': 41, 'Mecha': 18, 'Music': 19,
+  'Supernatural': 37, 'Suspense': 41, 'Mecha': 18, 'Music': 19,
   'Psychological': 40, 'Shounen': 27, 'Shoujo': 25, 'Seinen': 42,
   'Josei': 43, 'Kids': 15, 'Military': 38, 'Police': 39,
   'Space': 29, 'Vampire': 32, 'Harem': 35, 'Historical': 13,
   'Martial Arts': 17, 'Parody': 20, 'Samurai': 21, 'School': 23,
   'Demons': 6, 'Magic': 16, 'Super Power': 31, 'Game': 11,
-  'Isekai': 62, 'Cars': 3, 'Dementia': 5,
+  'Isekai': 62, 'Racing': 3, 'Hentai': 12,
 };
 
 const allGenres = Object.keys(genreMap);
@@ -24,7 +24,7 @@ const GenreSidebar = () => {
   const [showAll, setShowAll] = useState(false);
 
   const displayedGenres = showAll ? allGenres : allGenres.slice(0, 18);
-  const highlightedGenres = ['Action', 'Adventure', 'Drama', 'Fantasy', 'Romance', 'Shounen', 'Sci-Fi', 'Comedy', 'Supernatural'];
+  const highlightedGenres = ['Action', 'Adventure', 'Drama', 'Fantasy', 'Romance', 'Shounen', 'Sci-Fi', 'Comedy', 'Supernatural', 'Hentai'];
 
   return (
     <div>

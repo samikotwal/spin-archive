@@ -18,7 +18,7 @@ const GENRES = [
   { name: 'Slice of Life', id: 36, category: 'Main' },
   { name: 'Supernatural', id: 37, category: 'Main' },
   { name: 'Mystery', id: 7, category: 'Main' },
-  { name: 'Thriller', id: 45, category: 'Main' },
+  { name: 'Suspense', id: 41, category: 'Main' },
   { name: 'Horror', id: 14, category: 'Main' },
   { name: 'Psychological', id: 40, category: 'Main' },
   { name: 'Sports', id: 30, category: 'Main' },
@@ -53,6 +53,10 @@ const GENRES = [
   { name: 'Time Travel', id: 78, category: 'Themes' },
   { name: 'Racing', id: 3, category: 'Themes' },
   { name: 'Strategy Game', id: 11, category: 'Themes' },
+  
+  // Adult
+  { name: 'Hentai', id: 12, category: 'Adult' },
+  { name: 'Ecchi', id: 9, category: 'Adult' },
   
   // Types
   { name: 'Movie', id: 0, category: 'Types', isType: true, typeValue: 'movie' },
