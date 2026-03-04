@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, Disc3, Heart, Clock, Star, Calendar } from 'lucide-react';
+import { Search, Home, Film, Tv, TrendingUp, Flame, ArrowRight, User, LogOut, Sparkles, Play, Disc3, Heart, Clock, Star, Calendar, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import FloatingParticles from '@/components/FloatingParticles';
 import HeroBackground from '@/components/HeroBackground';
@@ -280,6 +280,102 @@ const Landing = () => {
             hasMore={hasMoreUpcoming}
             showWatchlist
           />
+        </div>
+      </section>
+
+      {/* About Us Section — HiAnime style */}
+      <section className="py-12 relative z-10">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left — About Content */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="flex-1"
+            >
+              <h2 className="text-3xl font-black text-foreground mb-6">
+                NERO FINDER - The best site to discover anime online for Free
+              </h2>
+              <div className="space-y-4 text-muted-foreground leading-relaxed">
+                <p>
+                  Do you know that according to Google, the monthly search volume for anime related topics is up to over 1 Billion times? Anime is famous worldwide and it is no wonder we've seen a sharp rise in the number of anime discovery sites.
+                </p>
+                <p>
+                  Just like free online movie streaming sites, anime watching sites are not created equally, some are better than the rest, so we've decided to build NERO FINDER to be one of the best anime discovery sites for all anime fans on the world.
+                </p>
+
+                <h3 className="text-xl font-bold text-foreground pt-4">What is NERO FINDER?</h3>
+                <p>
+                  NERO FINDER is a free site to discover anime and you can explore subbed or dubbed anime in ultra HD quality without any registration or payment. Our goal is to make it the safest and most enjoyable platform for free anime discovery.
+                </p>
+
+                <h3 className="text-xl font-bold text-foreground pt-4">So what makes NERO FINDER the best?</h3>
+                <ul className="space-y-3 list-none">
+                  {[
+                    { title: 'Safety', desc: 'We try our best to keep a clean and safe experience for all users.' },
+                    { title: 'Content library', desc: 'Our main focus is anime. You can find here popular, classic, as well as current titles from all genres such as action, drama, kids, fantasy, horror, mystery, police, romance, school, comedy, music, game and many more.' },
+                    { title: 'Quality/Resolution', desc: 'All titles are in excellent resolution, the best quality possible. NERO FINDER also has a quality selection to ensure our users can enjoy streaming no matter how fast their Internet speed is.' },
+                    { title: 'Updates', desc: 'We update new titles as well as fulfill the requests on a daily basis so be warned, you will never run out of what to explore on NERO FINDER.' },
+                    { title: 'User interface', desc: 'Our UI and UX makes it easy for anyone, no matter how old you are, how long have you been on the Internet. You can figure out how to navigate our site after a quick look.' },
+                    { title: 'Device compatibility', desc: 'NERO FINDER works alright on both your mobile and desktop. However, we\'d recommend you use your desktop for a smoother experience.' },
+                  ].map((item) => (
+                    <li key={item.title} className="flex gap-2">
+                      <span className="text-primary font-bold shrink-0">•</span>
+                      <span><strong className="text-foreground">{item.title}:</strong> {item.desc}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="pt-4">
+                  So if you're looking for a trustworthy and safe site for your Anime discovery, let's give NERO FINDER a try. And if you like us, please help us to spread the words and do not forget to bookmark our site.
+                </p>
+                <p className="text-sm text-muted-foreground/70 pt-2">Thank you!</p>
+              </div>
+            </motion.div>
+
+            {/* Right — Trending Posts Sidebar */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="w-full lg:w-80 flex-shrink-0 space-y-4"
+            >
+              <h3 className="text-xl font-bold text-foreground mb-4">Trending Posts</h3>
+              {[
+                { tag: '#Suggestion', tagColor: 'text-green-400', time: '7 hours ago', comments: 155, title: 'Do you guys have any tips on how to wake up early? like at 9-10 Am?', desc: 'As the title says', user: 'SGNK_43_xD' },
+                { tag: '#Recommendation', tagColor: 'text-primary', time: '2 days ago', comments: 80, title: 'YOU NEED TO WATCH THEM BEFORE YOU DIE!!! Here are some Greatest Anime of All Time', desc: 'Categories: Romance: Clannad Action: Attack On Titan Adventure: One Piece Sports: Haikyuu!! Isekai: Mushoku Tensei...', user: 'AnimeLover_99' },
+                { tag: '#Recommendation', tagColor: 'text-primary', time: '3 days ago', comments: 64, title: 'Top Anime to Start Your Journey!', desc: 'Looking for your first anime? Here are the best gateway anime for beginners that will hook you instantly...', user: 'OtakuSenpai' },
+                { tag: '#Discussion', tagColor: 'text-accent', time: '5 days ago', comments: 120, title: 'What anime made you cry the most?', desc: 'For me it was Clannad After Story and Your Lie in April. What about you guys?', user: 'EmotionalWeeb' },
+              ].map((post, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="glass rounded-xl p-4 border border-white/5 hover:border-primary/20 transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-xs font-bold ${post.tagColor}`}>{post.tag}</span>
+                    <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                      <span>{post.time}</span>
+                      <MessageCircle className="w-3 h-3 ml-2" />
+                      <span>{post.comments}</span>
+                    </div>
+                  </div>
+                  <h4 className="font-bold text-foreground text-sm mb-2 group-hover:text-primary transition-colors line-clamp-2">{post.title}</h4>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{post.desc}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs font-bold text-white">
+                      {post.user[0]}
+                    </div>
+                    <span className="text-xs text-muted-foreground">{post.user}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
         </div>
       </section>
 

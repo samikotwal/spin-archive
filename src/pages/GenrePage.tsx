@@ -50,9 +50,12 @@ const GenrePage = () => {
       try {
         await new Promise(resolve => setTimeout(resolve, 500)); // Rate limiting
         
+        const isNsfw = genreId === '12'; // Hentai
         let endpoint = `${JIKAN_API}/anime?page=${page}&limit=24&order_by=score&sort=desc`;
         
-        if (genreId) {
+        if (isNsfw) {
+          endpoint += `&genres=${genreId}&sfw=false`;
+        } else if (genreId) {
           endpoint += `&genres=${genreId}`;
         }
         if (typeParam) {
