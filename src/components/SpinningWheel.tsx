@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { WheelDisplayItem } from '@/hooks/useWheelData';
 
 interface SpinningWheelProps {
-  items: string[];
-  onSpinEnd: (selectedItem: string, index: number) => void;
+  items: WheelDisplayItem[];
+  onSpinEnd: (selectedItem: WheelDisplayItem, index: number) => void;
   isSpinning: boolean;
   setIsSpinning: (spinning: boolean) => void;
 }
@@ -44,7 +45,7 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
     }, 6000);
   };
 
-  const renderSlice = (item: string, index: number, total: number) => {
+  const renderSlice = (item: WheelDisplayItem, index: number, total: number) => {
     const sliceAngle = 360 / total;
     const startAngle = index * sliceAngle;
     const endAngle = startAngle + sliceAngle;
@@ -72,17 +73,27 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
       Z
     `;
     
+    const color = WHEEL_COLORS[index % WHEEL_COLORS.length];
+    
+    const hasImage = !!item.imageUrl;
     const textRadius = radius * 0.55;
     const textX = centerX + textRadius * Math.cos(midRad);
     const textY = centerY + textRadius * Math.sin(midRad);
     const textRotation = midAngle;
     
-    const color = WHEEL_COLORS[index % WHEEL_COLORS.length];
-    
     const maxChars = 10;
-    const displayText = item.length > maxChars ? item.substring(0, maxChars) + '..' : item;
+    const displayText = item.name.length > maxChars ? item.name.substring(0, maxChars) + '..' : item.name;
     const baseFontSize = Math.min(26, 320 / total);
-    const fontSize = Math.max(16, baseFontSize);
+    const fontSize = Math.max(hasImage ? 10 : 16, hasImage ? baseFontSize * 0.6 : baseFontSize);
+
+    // Image position (closer to edge)
+    const imgRadius = radius * 0.65;
+    const imgX = centerX + imgRadius * Math.cos(midRad);
+    const imgY = centerY + imgRadius * Math.sin(midRad);
+    const imgSize = Math.min(40, (sliceAngle / 360) * 200);
+
+    // Clip path for image
+    const clipId = `clip-${index}`;
 
     return (
       <g key={index}>
@@ -91,6 +102,11 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
             <stop offset="0%" stopColor={color} stopOpacity="1" />
             <stop offset="100%" stopColor={color} stopOpacity="0.7" />
           </linearGradient>
+          {hasImage && (
+            <clipPath id={clipId}>
+              <circle cx={imgX} cy={imgY} r={imgSize / 2} />
+            </clipPath>
+          )}
         </defs>
         <path
           d={pathData}
@@ -102,23 +118,63 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
             filter: isSpinning ? 'brightness(1.2)' : 'brightness(1)',
           }}
         />
-        <text
-          x={textX}
-          y={textY}
-          fill="white"
-          fontSize={fontSize}
-          fontWeight="800"
-          textAnchor="middle"
-          dominantBaseline="middle"
-          transform={`rotate(${textRotation}, ${textX}, ${textY})`}
-          style={{
-            textShadow: '2px 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            letterSpacing: '0.5px',
-          }}
-        >
-          {displayText}
-        </text>
+        {hasImage ? (
+          <>
+            <image
+              href={item.imageUrl!}
+              x={imgX - imgSize / 2}
+              y={imgY - imgSize / 2}
+              width={imgSize}
+              height={imgSize}
+              clipPath={`url(#${clipId})`}
+              preserveAspectRatio="xMidYMid slice"
+            />
+            <circle
+              cx={imgX}
+              cy={imgY}
+              r={imgSize / 2}
+              fill="none"
+              stroke="white"
+              strokeWidth="1.5"
+              opacity="0.6"
+            />
+            {/* Name below image */}
+            <text
+              x={centerX + (radius * 0.35) * Math.cos(midRad)}
+              y={centerY + (radius * 0.35) * Math.sin(midRad)}
+              fill="white"
+              fontSize={fontSize}
+              fontWeight="800"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              transform={`rotate(${textRotation}, ${centerX + (radius * 0.35) * Math.cos(midRad)}, ${centerY + (radius * 0.35) * Math.sin(midRad)})`}
+              style={{
+                textShadow: '2px 2px 8px rgba(0,0,0,0.9)',
+                fontFamily: 'Inter, system-ui, sans-serif',
+              }}
+            >
+              {displayText}
+            </text>
+          </>
+        ) : (
+          <text
+            x={textX}
+            y={textY}
+            fill="white"
+            fontSize={fontSize}
+            fontWeight="800"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            transform={`rotate(${textRotation}, ${textX}, ${textY})`}
+            style={{
+              textShadow: '2px 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)',
+              fontFamily: 'Inter, system-ui, sans-serif',
+              letterSpacing: '0.5px',
+            }}
+          >
+            {displayText}
+          </text>
+        )}
       </g>
     );
   };
@@ -128,13 +184,8 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
       {/* Outer Glow Ring */}
       <motion.div
         className="absolute inset-0 flex items-center justify-center"
-        animate={{
-          scale: isSpinning ? [1, 1.05, 1] : 1,
-        }}
-        transition={{
-          duration: 0.5,
-          repeat: isSpinning ? Infinity : 0,
-        }}
+        animate={{ scale: isSpinning ? [1, 1.05, 1] : 1 }}
+        transition={{ duration: 0.5, repeat: isSpinning ? Infinity : 0 }}
       >
         <div 
           className="w-[440px] h-[440px] rounded-full"
@@ -160,10 +211,7 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
           scale: isSpinning ? [1, 1.1, 1] : 1,
           y: isSpinning ? [0, -5, 0] : 0,
         }}
-        transition={{
-          duration: 0.3,
-          repeat: isSpinning ? Infinity : 0,
-        }}
+        transition={{ duration: 0.3, repeat: isSpinning ? Infinity : 0 }}
       >
         <div 
           className="w-0 h-0 border-l-[24px] border-r-[24px] border-t-[48px] border-l-transparent border-r-transparent drop-shadow-2xl"
@@ -179,9 +227,7 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
         className="relative z-10"
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
-        animate={{
-          scale: isHovered && !isSpinning ? 1.02 : 1,
-        }}
+        animate={{ scale: isHovered && !isSpinning ? 1.02 : 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       >
         <motion.svg
@@ -191,10 +237,7 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
           viewBox="0 0 400 400"
           className="drop-shadow-2xl cursor-pointer"
           animate={{ rotate: rotation }}
-          transition={{
-            duration: 6,
-            ease: [0.2, 0.9, 0.1, 1],
-          }}
+          transition={{ duration: 6, ease: [0.2, 0.9, 0.1, 1] }}
           onClick={spinWheel}
           style={{
             filter: isSpinning 
@@ -202,28 +245,9 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
               : 'drop-shadow(0 0 20px hsl(262 83% 58% / 0.3))',
           }}
         >
-          {/* Outer decorative ring */}
-          <circle
-            cx="200"
-            cy="200"
-            r="195"
-            fill="none"
-            stroke="url(#outerRingGradient)"
-            strokeWidth="6"
-            className={isSpinning ? 'animate-pulse' : ''}
-          />
+          <circle cx="200" cy="200" r="195" fill="none" stroke="url(#outerRingGradient)" strokeWidth="6" className={isSpinning ? 'animate-pulse' : ''} />
+          <circle cx="200" cy="200" r="185" fill="none" stroke="hsl(230, 25%, 5%)" strokeWidth="2" />
           
-          {/* Inner shadow ring */}
-          <circle
-            cx="200"
-            cy="200"
-            r="185"
-            fill="none"
-            stroke="hsl(230, 25%, 5%)"
-            strokeWidth="2"
-          />
-          
-          {/* Wheel slices */}
           <g>
             {items.length > 0 ? (
               items.map((item, index) => renderSlice(item, index, items.length))
@@ -237,24 +261,19 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
             )}
           </g>
 
-          {/* Decorative inner rings */}
           <circle cx="200" cy="200" r="50" fill="url(#innerCircleGradient)" stroke="hsl(230, 25%, 5%)" strokeWidth="4" />
           <circle cx="200" cy="200" r="35" fill="url(#centerGradient)" stroke="hsl(230, 25%, 15%)" strokeWidth="2" />
           <circle cx="200" cy="200" r="20" fill="hsl(230, 25%, 20%)" />
           
-          {/* Tick marks */}
           {items.length > 0 && items.map((_, i) => {
             const angle = (i * (360 / items.length) - 90) * (Math.PI / 180);
             const x1 = 200 + 175 * Math.cos(angle);
             const y1 = 200 + 175 * Math.sin(angle);
             const x2 = 200 + 185 * Math.cos(angle);
             const y2 = 200 + 185 * Math.sin(angle);
-            return (
-              <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(0, 0%, 100%)" strokeWidth="2" opacity="0.5" />
-            );
+            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(0, 0%, 100%)" strokeWidth="2" opacity="0.5" />;
           })}
           
-          {/* Gradients */}
           <defs>
             <linearGradient id="outerRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="hsl(262, 83%, 58%)" />
@@ -274,7 +293,6 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
           </defs>
         </motion.svg>
 
-        {/* Spinning particles effect */}
         <AnimatePresence>
           {isSpinning && (
             <>
@@ -294,12 +312,7 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
                     x: [0, Math.cos((i * 30) * Math.PI / 180) * 250],
                     y: [0, Math.sin((i * 30) * Math.PI / 180) * 250],
                   }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                    delay: i * 0.1,
-                    ease: 'easeOut',
-                  }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1, ease: 'easeOut' }}
                 />
               ))}
             </>
@@ -319,33 +332,20 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: Spinning
             ? ['0 0 20px hsl(262 83% 58% / 0.3)', '0 0 60px hsl(262 83% 58% / 0.6)', '0 0 20px hsl(262 83% 58% / 0.3)']
             : '0 0 20px hsl(262 83% 58% / 0.3)',
         }}
-        transition={{
-          boxShadow: { duration: 0.8, repeat: isSpinning ? Infinity : 0 },
-        }}
+        transition={{ boxShadow: { duration: 0.8, repeat: isSpinning ? Infinity : 0 } }}
       >
         <span className="relative z-10">
           {isSpinning ? '🎰 Spinning...' : items.length === 0 ? '➕ Add Items' : '🎯 SPIN!'}
         </span>
         <motion.div
           className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-          animate={{
-            x: ['-200%', '200%'],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
+          animate={{ x: ['-200%', '200%'] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
         />
       </motion.button>
 
-      {/* Item count */}
       {items.length > 0 && (
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-4 text-sm text-muted-foreground"
-        >
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 text-sm text-muted-foreground">
           {items.length} item{items.length !== 1 ? 's' : ''} on the wheel
         </motion.p>
       )}

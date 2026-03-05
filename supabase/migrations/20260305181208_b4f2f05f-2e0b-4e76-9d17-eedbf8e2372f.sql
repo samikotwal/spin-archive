@@ -1,0 +1,1 @@
+ALTER TABLE public.wheel_items ADD COLUMN image_url text DEFAULT NULL;

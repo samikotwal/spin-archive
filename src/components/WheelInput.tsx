@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, RotateCcw, FileText, Search, Image, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { WheelDisplayItem } from '@/hooks/useWheelData';
 
 interface WheelInputProps {
-  items: string[];
-  onAddItems: (items: string[]) => void;
+  items: WheelDisplayItem[];
+  onAddItems: (items: WheelDisplayItem[]) => void;
   onRemoveItem: (index: number) => void;
   onClearAll: () => void;
 }
@@ -31,7 +32,7 @@ const WheelInput = ({ items, onAddItems, onRemoveItem, onClearAll }: WheelInputP
       .map(item => item.trim())
       .filter(item => item.length > 0);
     if (parsed.length > 0) {
-      onAddItems(parsed);
+      onAddItems(parsed.map(name => ({ name })));
       setInputValue('');
     }
   };
@@ -58,7 +59,7 @@ const WheelInput = ({ items, onAddItems, onRemoveItem, onClearAll }: WheelInputP
   };
 
   const addAnimeToWheel = (anime: AnimeSearchResult) => {
-    onAddItems([anime.title]);
+    onAddItems([{ name: anime.title, imageUrl: anime.images?.jpg?.image_url }]);
     setAnimeResults(prev => prev.filter(a => a.mal_id !== anime.mal_id));
   };
 
@@ -133,7 +134,7 @@ const WheelInput = ({ items, onAddItems, onRemoveItem, onClearAll }: WheelInputP
                   {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">🔍 Search anime → click to add name to wheel</p>
+              <p className="text-xs text-muted-foreground mt-2">🔍 Search anime → click to add card with image to wheel</p>
             </>
           )}
         </div>
@@ -185,15 +186,19 @@ const WheelInput = ({ items, onAddItems, onRemoveItem, onClearAll }: WheelInputP
             <div className="divide-y divide-white/5">
               {items.map((item, index) => (
                 <motion.div
-                  key={`${item}-${index}`}
+                  key={`${item.name}-${index}`}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
                   className="flex items-center gap-3 px-4 py-2.5 group hover:bg-primary/5 transition-colors"
                 >
                   <span className="text-xs text-muted-foreground/40 font-mono w-5 text-right shrink-0">{index + 1}.</span>
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
-                  <span className="flex-1 text-sm text-foreground truncate">{item}</span>
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.name} className="w-8 h-10 rounded object-cover shrink-0 border border-white/10" />
+                  ) : (
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
+                  )}
+                  <span className="flex-1 text-sm text-foreground truncate">{item.name}</span>
                   <motion.div whileHover={{ scale: 1.1 }} className="opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="sm" onClick={() => onRemoveItem(index)} className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
                       <Trash2 className="w-3.5 h-3.5" />
