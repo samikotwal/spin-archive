@@ -228,61 +228,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Anime Sections — like explore page */}
-      <section className="relative z-10">
-        <div className="container mx-auto px-4">
-          <AnimeSectionGrid
-            title="🔥 Trending Now"
-            icon={<TrendingUp className="w-5 h-5 text-white" />}
-            anime={topAiringAnime}
-            isLoading={isLoadingAiring}
-            onLoadMore={loadMoreAiring}
-            hasMore={hasMoreAiring}
-            showWatchlist
-          />
-
-          <AnimeSectionGrid
-            title="🆕 Recently Added"
-            icon={<Clock className="w-5 h-5 text-white" />}
-            anime={recentlyAddedAnime}
-            isLoading={isLoadingRecent}
-            onLoadMore={loadMoreRecent}
-            hasMore={hasMoreRecent}
-            showWatchlist
-          />
-
-          <AnimeSectionGrid
-            title="⭐ Top Anime"
-            icon={<Star className="w-5 h-5 text-white" />}
-            anime={popularAnime}
-            isLoading={isLoadingPopular}
-            onLoadMore={loadMorePopular}
-            hasMore={hasMorePopular}
-            showWatchlist
-          />
-
-          <AnimeSectionGrid
-            title="🎬 Movies"
-            icon={<Film className="w-5 h-5 text-white" />}
-            anime={animeMovies}
-            isLoading={isLoadingMovies}
-            onLoadMore={loadMoreMovies}
-            hasMore={hasMoreMovies}
-            showWatchlist
-          />
-
-          <AnimeSectionGrid
-            title="📅 Upcoming"
-            icon={<Calendar className="w-5 h-5 text-white" />}
-            anime={upcomingAnime}
-            isLoading={isLoadingUpcoming}
-            onLoadMore={loadMoreUpcoming}
-            hasMore={hasMoreUpcoming}
-            showWatchlist
-          />
-        </div>
-      </section>
-
       {/* About Us Section — HiAnime style */}
       <section className="py-12 relative z-10">
         <div className="container mx-auto px-4">

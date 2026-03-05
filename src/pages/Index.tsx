@@ -52,7 +52,7 @@ const Index = () => {
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: FolderHeart, label: 'Saved Lists', path: '/saved-lists' },
+    { icon: FolderHeart, label: 'Saved Lists', path: '/saved' },
     { icon: Sparkles, label: 'Anime Finder', path: '/' },
   ];
 

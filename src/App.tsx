@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
+import Dashboard from "./pages/Dashboard";
 import Index from "./pages/Index";
 import SavedLists from "./pages/SavedLists";
 import AnimeFinder from "./pages/AnimeFinder";
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/genre" element={<GenrePage />} />
           <Route path="/genre/:genreName" element={<GenrePage />} />
           <Route path="/wheel" element={<Index />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/saved" element={<SavedLists />} />
           <Route path="/browse/:letter" element={<AlphabetBrowse />} />
