@@ -143,18 +143,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          image_url: string | null
           is_deleted: boolean
           value: string
         }
         Insert: {
           created_at?: string
           id?: string
+          image_url?: string | null
           is_deleted?: boolean
           value: string
         }
         Update: {
           created_at?: string
           id?: string
+          image_url?: string | null
           is_deleted?: boolean
           value?: string
         }

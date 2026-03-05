@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 interface DeleteConfirmDialogProps {
   isOpen: boolean;
   selectedItem: string;
+  selectedImageUrl?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -42,7 +43,7 @@ const Confetti = () => {
   );
 };
 
-const DeleteConfirmDialog = ({ isOpen, selectedItem, onConfirm, onCancel }: DeleteConfirmDialogProps) => {
+const DeleteConfirmDialog = ({ isOpen, selectedItem, selectedImageUrl, onConfirm, onCancel }: DeleteConfirmDialogProps) => {
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
@@ -59,7 +60,6 @@ const DeleteConfirmDialog = ({ isOpen, selectedItem, onConfirm, onCancel }: Dele
         <>
           {showConfetti && <Confetti />}
           
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -68,7 +68,6 @@ const DeleteConfirmDialog = ({ isOpen, selectedItem, onConfirm, onCancel }: Dele
             onClick={onCancel}
           />
           
-          {/* Dialog */}
           <motion.div
             initial={{ opacity: 0, scale: 0.5, y: 100 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -77,38 +76,42 @@ const DeleteConfirmDialog = ({ isOpen, selectedItem, onConfirm, onCancel }: Dele
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
           >
             <div className="glass-strong rounded-3xl p-10 text-center relative overflow-hidden">
-              {/* Animated Background */}
               <div className="absolute inset-0 opacity-30">
                 <motion.div
                   className="absolute inset-0"
                   style={{
                     background: 'radial-gradient(circle at 30% 30%, hsl(262 83% 58% / 0.4), transparent 50%), radial-gradient(circle at 70% 70%, hsl(338 90% 56% / 0.4), transparent 50%)',
                   }}
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    rotate: [0, 5, 0],
-                  }}
-                  transition={{
-                    duration: 5,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
+                  animate={{ scale: [1, 1.2, 1], rotate: [0, 5, 0] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
                 />
               </div>
 
-              {/* Content */}
               <div className="relative z-10">
-                {/* Celebration Icon */}
-                <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", delay: 0.2, bounce: 0.5 }}
-                  className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary via-accent to-glow-cyan flex items-center justify-center animate-glow-pulse"
-                >
-                  <PartyPopper className="w-12 h-12 text-white" />
-                </motion.div>
+                {selectedImageUrl ? (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", delay: 0.2, bounce: 0.5 }}
+                    className="mx-auto mb-6"
+                  >
+                    <img
+                      src={selectedImageUrl}
+                      alt={selectedItem}
+                      className="w-28 h-40 mx-auto rounded-2xl object-cover border-4 border-primary/50 shadow-2xl"
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", delay: 0.2, bounce: 0.5 }}
+                    className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary via-accent to-glow-cyan flex items-center justify-center animate-glow-pulse"
+                  >
+                    <PartyPopper className="w-12 h-12 text-white" />
+                  </motion.div>
+                )}
 
-                {/* Title */}
                 <motion.h2
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -118,7 +121,6 @@ const DeleteConfirmDialog = ({ isOpen, selectedItem, onConfirm, onCancel }: Dele
                   🎉 Winner! 🎉
                 </motion.h2>
                 
-                {/* Selected Item */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -130,17 +132,15 @@ const DeleteConfirmDialog = ({ isOpen, selectedItem, onConfirm, onCancel }: Dele
                   </p>
                 </motion.div>
 
-                {/* Question */}
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
                   className="text-muted-foreground mb-8 text-lg"
                 >
-                  Do you want to delete this selected item?
+                  Isko remove karna hai wheel se?
                 </motion.p>
 
-                {/* Buttons */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -153,7 +153,7 @@ const DeleteConfirmDialog = ({ isOpen, selectedItem, onConfirm, onCancel }: Dele
                       className="bg-gradient-to-r from-destructive to-accent text-white px-8 py-6 text-lg font-bold rounded-full shadow-xl"
                     >
                       <Trash2 className="w-5 h-5 mr-2" />
-                      Yes, Delete
+                      Haan, Remove
                     </Button>
                   </motion.div>
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -163,7 +163,7 @@ const DeleteConfirmDialog = ({ isOpen, selectedItem, onConfirm, onCancel }: Dele
                       className="border-white/30 text-foreground px-8 py-6 text-lg rounded-full backdrop-blur-sm"
                     >
                       <X className="w-5 h-5 mr-2" />
-                      No, Keep
+                      Nahi, Rehne Do
                     </Button>
                   </motion.div>
                 </motion.div>
