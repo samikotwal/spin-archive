@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, RotateCcw, FileText, Search, Image, Loader2 } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, FileText, Tv, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { WheelDisplayItem } from '@/hooks/useWheelData';
@@ -12,7 +12,7 @@ interface WheelInputProps {
   onClearAll: () => void;
 }
 
-interface AnimeSearchResult {
+interface AiringAnime {
   mal_id: number;
   title: string;
   images: { jpg: { image_url: string } };
@@ -20,185 +20,188 @@ interface AnimeSearchResult {
 
 const WheelInput = ({ items, onAddItems, onRemoveItem, onClearAll }: WheelInputProps) => {
   const [inputValue, setInputValue] = useState('');
-  const [mode, setMode] = useState<'text' | 'anime'>('text');
-  const [animeQuery, setAnimeQuery] = useState('');
-  const [animeResults, setAnimeResults] = useState<AnimeSearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [airingAnime, setAiringAnime] = useState<AiringAnime[]>([]);
+  const [loadingAiring, setLoadingAiring] = useState(false);
 
-  const parseAndAddItems = () => {
+  // Fetch currently airing anime on mount
+  useEffect(() => {
+    const fetchAiring = async () => {
+      setLoadingAiring(true);
+      try {
+        const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+        const today = days[new Date().getDay()];
+        const res = await fetch(`https://api.jikan.moe/v4/schedules?filter=${today}&limit=20&sfw=true`);
+        const data = await res.json();
+        setAiringAnime(data.data || []);
+      } catch {
+        setAiringAnime([]);
+      }
+      setLoadingAiring(false);
+    };
+    fetchAiring();
+  }, []);
+
+  // Auto-fetch anime card by name and add to wheel
+  const addItemByName = async (name: string) => {
+    if (!name.trim()) return;
+    setIsAdding(true);
+    try {
+      const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(name.trim())}&limit=1&sfw=true`);
+      const data = await res.json();
+      const anime = data.data?.[0];
+      if (anime) {
+        onAddItems([{ name: anime.title, imageUrl: anime.images?.jpg?.image_url }]);
+      } else {
+        // No match found, add as plain name
+        onAddItems([{ name: name.trim() }]);
+      }
+    } catch {
+      onAddItems([{ name: name.trim() }]);
+    }
+    setIsAdding(false);
+  };
+
+  const parseAndAddItems = async () => {
     if (!inputValue.trim()) return;
     const parsed = inputValue
       .split(/[\n,]+/)
       .map(item => item.trim())
       .filter(item => item.length > 0);
+    
     if (parsed.length > 0) {
-      onAddItems(parsed.map(name => ({ name })));
       setInputValue('');
+      // Fetch anime cards for each name
+      for (const name of parsed) {
+        await addItemByName(name);
+        // Rate limit for Jikan API
+        if (parsed.length > 1) await new Promise(r => setTimeout(r, 400));
+      }
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (mode === 'text') parseAndAddItems();
-      else searchAnime();
+      parseAndAddItems();
     }
   };
 
-  const searchAnime = async () => {
-    if (!animeQuery.trim()) return;
-    setIsSearching(true);
-    try {
-      const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(animeQuery)}&limit=10&sfw=false`);
-      const data = await res.json();
-      setAnimeResults(data.data || []);
-    } catch {
-      setAnimeResults([]);
-    }
-    setIsSearching(false);
-  };
-
-  const addAnimeToWheel = (anime: AnimeSearchResult) => {
+  const addAiringAnime = (anime: AiringAnime) => {
+    const alreadyExists = items.some(i => i.name === anime.title);
+    if (alreadyExists) return;
     onAddItems([{ name: anime.title, imageUrl: anime.images?.jpg?.image_url }]);
-    setAnimeResults(prev => prev.filter(a => a.mal_id !== anime.mal_id));
   };
 
   return (
     <motion.div
       className="w-full max-w-md"
-      whileHover={{ scale: 1.005 }}
-      transition={{ type: 'spring', stiffness: 300 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
     >
       {/* Notepad Header */}
-      <div className="bg-red-500/80 rounded-t-2xl px-4 py-2 flex items-center justify-between">
+      <div className="bg-gradient-to-r from-primary/80 to-accent/80 rounded-t-2xl px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-white" />
           <span className="text-white font-bold text-sm">Wheel Notepad</span>
         </div>
-        <span className="text-white/60 text-xs">{items.length} items</span>
-      </div>
-
-      {/* Mode Tabs */}
-      <div className="flex border-b border-white/10 bg-secondary/60">
-        <button
-          onClick={() => setMode('text')}
-          className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
-            mode === 'text' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <FileText className="w-3.5 h-3.5" />
-          Type Names
-        </button>
-        <button
-          onClick={() => setMode('anime')}
-          className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
-            mode === 'anime' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Image className="w-3.5 h-3.5" />
-          Anime Cards
-        </button>
+        <span className="text-white/70 text-xs font-mono">{items.length} items</span>
       </div>
 
       {/* Notepad Body */}
-      <div className="bg-secondary/30 backdrop-blur-sm border border-white/5 border-t-0 rounded-b-2xl overflow-hidden">
+      <div className="bg-card/60 backdrop-blur-xl border border-border/30 border-t-0 rounded-b-2xl overflow-hidden shadow-2xl">
         {/* Input Area */}
-        <div className="p-4 border-b border-white/5">
-          {mode === 'text' ? (
-            <>
-              <div className="flex gap-2">
-                <Input
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type names here... (comma separated)"
-                  className="bg-background/50 border-white/10 text-foreground placeholder:text-muted-foreground rounded-xl text-sm"
-                />
-                <Button onClick={parseAndAddItems} size="sm" className="bg-gradient-to-r from-primary to-accent text-white shrink-0 rounded-xl">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">📝 Type like a notepad — one per line or comma separated</p>
-            </>
-          ) : (
-            <>
-              <div className="flex gap-2">
-                <Input
-                  value={animeQuery}
-                  onChange={(e) => setAnimeQuery(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Search anime name..."
-                  className="bg-background/50 border-white/10 text-foreground placeholder:text-muted-foreground rounded-xl text-sm"
-                />
-                <Button onClick={searchAnime} size="sm" disabled={isSearching} className="bg-gradient-to-r from-purple-500 to-pink-500 text-white shrink-0 rounded-xl">
-                  {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">🔍 Search anime → click to add card with image to wheel</p>
-            </>
-          )}
+        <div className="p-4 border-b border-border/20">
+          <div className="flex gap-2">
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type anime name... (auto-fetches card)"
+              disabled={isAdding}
+              className="bg-background/50 border-border/20 text-foreground placeholder:text-muted-foreground rounded-xl text-sm"
+            />
+            <Button 
+              onClick={parseAndAddItems} 
+              size="sm" 
+              disabled={isAdding || !inputValue.trim()}
+              className="bg-gradient-to-r from-primary to-accent text-white shrink-0 rounded-xl"
+            >
+              {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+            📝 Name likho, anime card khud aa jayega! Comma se alag karo multiple ke liye.
+          </p>
         </div>
 
-        {/* Anime Search Results */}
-        <AnimatePresence>
-          {mode === 'anime' && animeResults.length > 0 && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="border-b border-white/5 overflow-hidden"
-            >
-              <div className="p-3 max-h-52 overflow-y-auto space-y-1.5">
-                <p className="text-xs text-muted-foreground mb-2">Click to add to wheel:</p>
-                {animeResults.map((anime) => (
-                  <motion.button
-                    key={anime.mal_id}
-                    whileHover={{ scale: 1.02, x: 3 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => addAnimeToWheel(anime)}
-                    className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-primary/10 transition-colors text-left group"
-                  >
-                    <img
-                      src={anime.images?.jpg?.image_url}
-                      alt={anime.title}
-                      className="w-10 h-14 rounded-lg object-cover shrink-0 border border-white/10"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground font-medium truncate group-hover:text-primary transition-colors">{anime.title}</p>
-                    </div>
-                    <Plus className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
-                  </motion.button>
-                ))}
+        {/* Currently Airing Section */}
+        <div className="border-b border-border/20">
+          <button
+            className="w-full px-4 py-2.5 flex items-center gap-2 text-xs font-bold text-primary hover:bg-primary/5 transition-colors"
+            onClick={() => {}}
+          >
+            <Tv className="w-3.5 h-3.5" />
+            Currently Airing — Quick Add
+          </button>
+          <div className="px-3 pb-3 max-h-40 overflow-y-auto">
+            {loadingAiring ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {airingAnime.slice(0, 15).map((anime) => {
+                  const isAdded = items.some(i => i.name === anime.title);
+                  return (
+                    <motion.button
+                      key={anime.mal_id}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => addAiringAnime(anime)}
+                      disabled={isAdded}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        isAdded 
+                          ? 'bg-primary/20 text-primary border border-primary/30 cursor-not-allowed' 
+                          : 'bg-secondary/50 text-foreground hover:bg-primary/10 hover:text-primary border border-border/20'
+                      }`}
+                    >
+                      <img src={anime.images?.jpg?.image_url} alt="" className="w-4 h-4 rounded-full object-cover" />
+                      <span className="max-w-[100px] truncate">{anime.title}</span>
+                      {isAdded && <span className="text-[10px]">✓</span>}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
 
-        {/* Notepad Lines — Items List */}
+        {/* Items List */}
         <div className="max-h-72 overflow-y-auto">
           {items.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
-              <div className="text-4xl mb-2">📝</div>
-              <p className="text-sm">Your notepad is empty</p>
-              <p className="text-xs mt-1">Add items to spin the wheel!</p>
+              <div className="text-4xl mb-2">🎯</div>
+              <p className="text-sm">Wheel khali hai</p>
+              <p className="text-xs mt-1">Name type karo ya airing anime se add karo!</p>
             </div>
           ) : (
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-border/10">
               {items.map((item, index) => (
                 <motion.div
                   key={`${item.name}-${index}`}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
                   className="flex items-center gap-3 px-4 py-2.5 group hover:bg-primary/5 transition-colors"
                 >
                   <span className="text-xs text-muted-foreground/40 font-mono w-5 text-right shrink-0">{index + 1}.</span>
                   {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.name} className="w-8 h-10 rounded object-cover shrink-0 border border-white/10" />
+                    <img src={item.imageUrl} alt={item.name} className="w-8 h-10 rounded-lg object-cover shrink-0 border border-border/20 shadow-sm" />
                   ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
+                    <div className="w-8 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-xs">🎯</div>
                   )}
-                  <span className="flex-1 text-sm text-foreground truncate">{item.name}</span>
+                  <span className="flex-1 text-sm text-foreground truncate font-medium">{item.name}</span>
                   <motion.div whileHover={{ scale: 1.1 }} className="opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="sm" onClick={() => onRemoveItem(index)} className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
                       <Trash2 className="w-3.5 h-3.5" />
@@ -210,9 +213,9 @@ const WheelInput = ({ items, onAddItems, onRemoveItem, onClearAll }: WheelInputP
           )}
         </div>
 
-        {/* Footer Actions */}
+        {/* Footer */}
         {items.length > 0 && (
-          <div className="p-3 border-t border-white/10">
+          <div className="p-3 border-t border-border/20">
             <Button
               variant="outline"
               size="sm"
