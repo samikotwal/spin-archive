@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Trash2, X, PartyPopper } from 'lucide-react';
+import { Trash2, X, Trophy, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface DeleteConfirmDialogProps {
@@ -13,30 +13,28 @@ interface DeleteConfirmDialogProps {
 
 const Confetti = () => {
   const colors = ['#8B5CF6', '#EC4899', '#06B6D4', '#10B981', '#F59E0B', '#EF4444'];
-  
   return (
-    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-      {[...Array(50)].map((_, i) => (
+    <div className="fixed inset-0 pointer-events-none z-[60] overflow-hidden">
+      {[...Array(60)].map((_, i) => (
         <motion.div
           key={i}
-          className="absolute w-3 h-3"
+          className="absolute"
           style={{
             left: `${Math.random() * 100}%`,
-            top: '-20px',
+            top: '-10px',
+            width: `${Math.random() * 8 + 4}px`,
+            height: `${Math.random() * 8 + 4}px`,
             backgroundColor: colors[Math.floor(Math.random() * colors.length)],
-            borderRadius: Math.random() > 0.5 ? '50%' : '0%',
+            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
           }}
           initial={{ y: -20, rotate: 0, opacity: 1 }}
           animate={{
             y: window.innerHeight + 100,
             rotate: Math.random() * 720 - 360,
             opacity: [1, 1, 0],
+            x: Math.random() * 200 - 100,
           }}
-          transition={{
-            duration: 2 + Math.random() * 2,
-            delay: Math.random() * 0.5,
-            ease: 'linear',
-          }}
+          transition={{ duration: 2.5 + Math.random() * 2, delay: Math.random() * 0.8, ease: 'linear' }}
         />
       ))}
     </div>
@@ -49,7 +47,7 @@ const DeleteConfirmDialog = ({ isOpen, selectedItem, selectedImageUrl, onConfirm
   useEffect(() => {
     if (isOpen) {
       setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 3000);
+      const timer = setTimeout(() => setShowConfetti(false), 3500);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -60,116 +58,129 @@ const DeleteConfirmDialog = ({ isOpen, selectedItem, selectedImageUrl, onConfirm
         <>
           {showConfetti && <Confetti />}
           
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 backdrop-blur-md z-50"
+            className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50"
             onClick={onCancel}
           />
           
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5, y: 100 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.5, y: 100 }}
-            transition={{ type: "spring", duration: 0.6, bounce: 0.4 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
-          >
-            <div className="glass-strong rounded-3xl p-10 text-center relative overflow-hidden">
-              <div className="absolute inset-0 opacity-30">
-                <motion.div
-                  className="absolute inset-0"
-                  style={{
-                    background: 'radial-gradient(circle at 30% 30%, hsl(262 83% 58% / 0.4), transparent 50%), radial-gradient(circle at 70% 70%, hsl(338 90% 56% / 0.4), transparent 50%)',
-                  }}
-                  animate={{ scale: [1, 1.2, 1], rotate: [0, 5, 0] }}
-                  transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              </div>
-
-              <div className="relative z-10">
-                {selectedImageUrl ? (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", delay: 0.2, bounce: 0.5 }}
-                    className="mx-auto mb-6"
-                  >
-                    <img
-                      src={selectedImageUrl}
-                      alt={selectedItem}
-                      className="w-28 h-40 mx-auto rounded-2xl object-cover border-4 border-primary/50 shadow-2xl"
-                    />
-                  </motion.div>
-                ) : (
+          {/* Center Winner Card */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.3, rotateY: -90 }}
+              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+              exit={{ opacity: 0, scale: 0.3, rotateY: 90 }}
+              transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
+              className="w-full max-w-sm"
+            >
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+                {/* Glowing border effect */}
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary via-accent to-primary p-[2px]">
+                  <div className="w-full h-full rounded-3xl bg-card" />
+                </div>
+                
+                <div className="relative z-10 p-8 text-center">
+                  {/* Trophy icon */}
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", delay: 0.2, bounce: 0.5 }}
-                    className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary via-accent to-glow-cyan flex items-center justify-center animate-glow-pulse"
+                    transition={{ type: "spring", delay: 0.2, bounce: 0.6 }}
+                    className="relative mx-auto mb-4"
                   >
-                    <PartyPopper className="w-12 h-12 text-white" />
-                  </motion.div>
-                )}
-
-                <motion.h2
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-3xl font-black mb-2 text-gradient-primary"
-                >
-                  🎉 Winner! 🎉
-                </motion.h2>
-                
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.4, type: 'spring' }}
-                  className="my-6 p-4 rounded-2xl bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30"
-                >
-                  <p className="text-3xl font-black text-foreground break-words">
-                    "{selectedItem}"
-                  </p>
-                </motion.div>
-
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-muted-foreground mb-8 text-lg"
-                >
-                  Isko remove karna hai wheel se?
-                </motion.p>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="flex gap-4 justify-center"
-                >
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      onClick={onConfirm}
-                      className="bg-gradient-to-r from-destructive to-accent text-white px-8 py-6 text-lg font-bold rounded-full shadow-xl"
+                    <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/30">
+                      <Trophy className="w-8 h-8 text-white" />
+                    </div>
+                    <motion.div
+                      className="absolute -top-1 -right-1"
+                      animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
                     >
-                      <Trash2 className="w-5 h-5 mr-2" />
-                      Haan, Remove
-                    </Button>
+                      <Sparkles className="w-5 h-5 text-yellow-400" />
+                    </motion.div>
                   </motion.div>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      onClick={onCancel}
-                      variant="outline"
-                      className="border-white/30 text-foreground px-8 py-6 text-lg rounded-full backdrop-blur-sm"
+
+                  {/* Winner label */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-xs font-bold uppercase tracking-[4px] text-primary mb-3"
+                  >
+                    🎉 Winner 🎉
+                  </motion.p>
+
+                  {/* Anime image */}
+                  {selectedImageUrl && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: "spring", delay: 0.35, bounce: 0.5 }}
+                      className="mb-4"
                     >
-                      <X className="w-5 h-5 mr-2" />
-                      Nahi, Rehne Do
-                    </Button>
+                      <img
+                        src={selectedImageUrl}
+                        alt={selectedItem}
+                        className="w-24 h-32 mx-auto rounded-2xl object-cover border-2 border-primary/40 shadow-xl shadow-primary/20"
+                      />
+                    </motion.div>
+                  )}
+
+                  {/* Winner name */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.4, type: 'spring' }}
+                    className="mb-6 p-3 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20"
+                  >
+                    <p className="text-xl font-black text-foreground break-words leading-tight">
+                      {selectedItem}
+                    </p>
                   </motion.div>
-                </motion.div>
+
+                  {/* Question */}
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-muted-foreground mb-6 text-sm"
+                  >
+                    Isko wheel se remove karna hai?
+                  </motion.p>
+
+                  {/* Buttons */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="flex gap-3"
+                  >
+                    <motion.div className="flex-1" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                      <Button
+                        onClick={onConfirm}
+                        className="w-full bg-gradient-to-r from-red-500 to-pink-500 text-white py-5 font-bold rounded-xl shadow-lg shadow-red-500/20"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Haan, Remove
+                      </Button>
+                    </motion.div>
+                    <motion.div className="flex-1" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                      <Button
+                        onClick={onCancel}
+                        variant="outline"
+                        className="w-full border-border/50 text-foreground py-5 rounded-xl"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Rehne Do
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
