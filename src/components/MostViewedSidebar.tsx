@@ -29,33 +29,34 @@ const MostViewedSidebar = () => {
   ];
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
+    const fetchTab = async (url: string): Promise<Anime[]> => {
       try {
-        // Fetch 25 items for each tab from different endpoints
-        const [dayRes, weekRes, monthRes] = await Promise.all([
-          fetch(`${JIKAN_API}/top/anime?filter=airing&limit=20`),
-          fetch(`${JIKAN_API}/top/anime?filter=bypopularity&limit=20`),
-          fetch(`${JIKAN_API}/top/anime?limit=20`),
-        ]);
-
-        const [dayJson, weekJson, monthJson] = await Promise.all([
-          dayRes.json(),
-          weekRes.json(),
-          monthRes.json(),
-        ]);
-
-        setDayAnime(dayJson.data || []);
-        setWeekAnime(weekJson.data || []);
-        setMonthAnime(monthJson.data || []);
-      } catch (error) {
-        console.error('Error fetching most viewed:', error);
-      } finally {
-        setIsLoading(false);
+        const res = await fetch(url);
+        const json = await res.json();
+        return json.data || [];
+      } catch {
+        return [];
       }
     };
 
-    fetchData();
+    const fetchAll = async () => {
+      setIsLoading(true);
+      // Fetch sequentially with delays to avoid rate limiting
+      const day = await fetchTab(`${JIKAN_API}/top/anime?filter=airing&limit=25`);
+      setDayAnime(day);
+
+      await new Promise(r => setTimeout(r, 400));
+      const week = await fetchTab(`${JIKAN_API}/top/anime?filter=bypopularity&limit=25`);
+      setWeekAnime(week);
+
+      await new Promise(r => setTimeout(r, 400));
+      const month = await fetchTab(`${JIKAN_API}/top/anime?limit=25`);
+      setMonthAnime(month);
+
+      setIsLoading(false);
+    };
+
+    fetchAll();
   }, []);
 
   const displayed = activeTab === 'day' ? dayAnime : activeTab === 'week' ? weekAnime : monthAnime;
@@ -94,7 +95,7 @@ const MostViewedSidebar = () => {
           ))}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {displayed.slice(0, 20).map((item, index) => (
             <motion.div
               key={`${activeTab}-${item.mal_id}`}
@@ -103,30 +104,30 @@ const MostViewedSidebar = () => {
               transition={{ delay: index * 0.02 }}
               whileHover={{ x: -4 }}
               onClick={() => navigate(`/anime/${item.mal_id}`)}
-              className="flex gap-3 cursor-pointer group items-start"
+              className="flex gap-2.5 cursor-pointer group items-start"
             >
-              <span className="text-2xl font-black text-muted-foreground/40 w-8 text-right flex-shrink-0 mt-1">
+              <span className="text-lg font-black text-muted-foreground/40 w-7 text-right flex-shrink-0 mt-1">
                 {String(index + 1).padStart(2, '0')}
               </span>
               <img
                 src={item.images.jpg.large_image_url}
                 alt={item.title}
-                className="w-12 h-16 rounded-lg object-cover flex-shrink-0"
+                className="w-10 h-14 rounded-lg object-cover flex-shrink-0"
                 loading="lazy"
               />
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                <h4 className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
                   {item.title}
                 </h4>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-0.5">
                   {item.episodes && (
-                    <span className="text-xs text-accent font-medium">
+                    <span className="text-[10px] text-accent font-medium">
                       EP {item.episodes}
                     </span>
                   )}
                   {item.score && (
-                    <span className="text-xs text-yellow-400 flex items-center gap-0.5">
-                      <Star className="w-3 h-3" fill="currentColor" />
+                    <span className="text-[10px] text-yellow-400 flex items-center gap-0.5">
+                      <Star className="w-2.5 h-2.5" fill="currentColor" />
                       {item.score.toFixed(1)}
                     </span>
                   )}
