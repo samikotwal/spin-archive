@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, X, Sparkles, Heart, Dices, Star, Film, Tv, Calendar, Clock, TrendingUp } from 'lucide-react';
+import { Search, X, Sparkles, Heart, Dices, Star, Film, Tv, Calendar, Clock, TrendingUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import AnimeCardEnhanced from '@/components/AnimeCardEnhanced';
 import AnimeSectionGrid from '@/components/AnimeSectionGrid';
 import AnimeColumnList from '@/components/AnimeColumnList';
@@ -26,8 +25,20 @@ const AnimeFinder = () => {
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [searchPage, setSearchPage] = useState(1);
+  const [allSearchResults, setAllSearchResults] = useState<any[]>([]);
+  const [hasMoreSearch, setHasMoreSearch] = useState(false);
+  const [loadingMoreSearch, setLoadingMoreSearch] = useState(false);
 
   const { user } = useAuth();
+
+  // Refs for scrolling to sections
+  const moviesRef = useRef<HTMLDivElement>(null);
+  const tvRef = useRef<HTMLDivElement>(null);
+  const popularRef = useRef<HTMLDivElement>(null);
+  const airingRef = useRef<HTMLDivElement>(null);
+  const upcomingRef = useRef<HTMLDivElement>(null);
+  const recentRef = useRef<HTMLDivElement>(null);
 
   const {
     popularAnime,
@@ -61,7 +72,12 @@ const AnimeFinder = () => {
 
   const debouncedSearch = useDebouncedCallback((query: string) => {
     if (query.trim()) {
-      searchAnime(query);
+      setSearchPage(1);
+      setAllSearchResults([]);
+      searchAnime(query).then(results => {
+        setAllSearchResults(results);
+        setHasMoreSearch(results.length >= 24);
+      });
     }
   }, 500);
 
@@ -69,7 +85,10 @@ const AnimeFinder = () => {
     const q = searchParams.get('q');
     if (q) {
       setSearchQuery(q);
-      searchAnime(q);
+      searchAnime(q).then(results => {
+        setAllSearchResults(results);
+        setHasMoreSearch(results.length >= 24);
+      });
     }
   }, [searchParams]);
 
@@ -81,6 +100,24 @@ const AnimeFinder = () => {
 
   const clearSearch = () => {
     setSearchQuery('');
+    setAllSearchResults([]);
+  };
+
+  const loadMoreSearchResults = async () => {
+    if (loadingMoreSearch || !searchQuery.trim()) return;
+    setLoadingMoreSearch(true);
+    try {
+      const nextPage = searchPage + 1;
+      const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(searchQuery)}&limit=24&page=${nextPage}&order_by=score&sort=desc`);
+      const json = await res.json();
+      const newResults = json.data || [];
+      setAllSearchResults(prev => [...prev, ...newResults]);
+      setSearchPage(nextPage);
+      setHasMoreSearch(newResults.length >= 24);
+    } catch (e) {
+      console.error('Load more search error:', e);
+    }
+    setLoadingMoreSearch(false);
   };
 
   const isSearchMode = searchQuery.length > 0;
@@ -88,6 +125,21 @@ const AnimeFinder = () => {
   const completedAnime = popularAnime.filter(a =>
     a.status?.toLowerCase().includes('finished') || !a.airing
   );
+
+  const categoryTabs = [
+    { label: 'Movies', icon: Film, ref: moviesRef },
+    { label: 'TV Series', icon: Tv, ref: tvRef },
+    { label: 'Most Popular', icon: Star, ref: popularRef },
+    { label: 'Top Airing', icon: TrendingUp, ref: airingRef },
+    { label: 'Upcoming', icon: Calendar, ref: upcomingRef },
+    { label: 'Recent', icon: Clock, ref: recentRef },
+  ];
+
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const displayedSearchResults = allSearchResults.length > 0 ? allSearchResults : searchResults;
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden pb-16 md:pb-0">
@@ -111,11 +163,11 @@ const AnimeFinder = () => {
             </motion.h1>
 
             <div className="flex-1 max-w-2xl relative">
-              <Input
+              <input
                 value={searchQuery}
                 onChange={handleSearchChange}
                 placeholder="Search anime..."
-                className="pl-10 pr-10 py-2.5 bg-secondary/80 border-white/10 rounded-full focus:ring-2 focus:ring-primary transition-all"
+                className="w-full pl-10 pr-10 py-2.5 bg-secondary/80 border border-white/10 rounded-full focus:ring-2 focus:ring-primary transition-all text-foreground placeholder:text-muted-foreground text-sm outline-none"
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               {searchQuery && (
@@ -140,6 +192,22 @@ const AnimeFinder = () => {
               Favorites
             </Button>
           </div>
+
+          {/* Category Quick Nav */}
+          {!isSearchMode && (
+            <div className="flex gap-1 mt-2 overflow-x-auto scrollbar-none pb-1">
+              {categoryTabs.map((tab) => (
+                <button
+                  key={tab.label}
+                  onClick={() => scrollToSection(tab.ref)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors whitespace-nowrap shrink-0"
+                >
+                  <tab.icon className="w-3 h-3" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </motion.header>
 
@@ -150,35 +218,56 @@ const AnimeFinder = () => {
               <h2 className="text-2xl font-bold text-foreground mb-1">
                 Results for "<span className="text-primary">{searchQuery}</span>"
               </h2>
-              <p className="text-muted-foreground text-sm">Found {searchResults.length} anime</p>
+              <p className="text-muted-foreground text-sm">Found {displayedSearchResults.length} anime</p>
             </motion.div>
 
-            {apiSearching ? (
+            {apiSearching && displayedSearchResults.length === 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {Array.from({ length: 12 }).map((_, i) => (
                   <motion.div key={i} className="aspect-[3/4] rounded-xl bg-muted" animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }} />
                 ))}
               </div>
-            ) : searchResults.length === 0 ? (
+            ) : displayedSearchResults.length === 0 ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
                 <div className="text-6xl mb-4">🔍</div>
                 <p className="text-muted-foreground text-xl">No anime found for "{searchQuery}"</p>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {searchResults.map((anime, index) => (
-                  <AnimeCardEnhanced
-                    key={anime.mal_id}
-                    id={anime.mal_id}
-                    title={anime.title}
-                    imageUrl={anime.images.jpg.large_image_url}
-                    score={anime.score}
-                    year={anime.year}
-                    type={anime.type}
-                    index={index}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {displayedSearchResults.map((anime: any, index: number) => (
+                    <AnimeCardEnhanced
+                      key={`${anime.mal_id}-${index}`}
+                      id={anime.mal_id}
+                      title={anime.title}
+                      imageUrl={anime.images.jpg.large_image_url}
+                      score={anime.score}
+                      year={anime.year}
+                      type={anime.type}
+                      index={index}
+                    />
+                  ))}
+                </div>
+
+                {/* Load More for search */}
+                {hasMoreSearch && (
+                  <div className="flex justify-center mt-8">
+                    <Button
+                      onClick={loadMoreSearchResults}
+                      disabled={loadingMoreSearch}
+                      variant="outline"
+                      className="rounded-full px-8 border-white/10 gap-2"
+                    >
+                      {loadingMoreSearch ? (
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                      Load More Results
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : (
@@ -201,33 +290,37 @@ const AnimeFinder = () => {
               </div>
             </motion.section>
 
-            {/* Main Content + Sidebar — only Trending & Top Anime sit next to sidebar */}
+            {/* Main Content + Sidebar */}
             <div className="flex gap-6">
               <div className="flex-1 min-w-0">
-                <AnimeSectionGrid
-                  title="🔥 Trending Now"
-                  icon={<TrendingUp className="w-5 h-5 text-white" />}
-                  anime={topAiringAnime}
-                  isLoading={isLoadingAiring}
-                  onLoadMore={loadMoreAiring}
-                  hasMore={hasMoreAiring}
-                  showWatchlist
-                />
+                <div ref={airingRef}>
+                  <AnimeSectionGrid
+                    title="🔥 Trending Now"
+                    icon={<TrendingUp className="w-5 h-5 text-white" />}
+                    anime={topAiringAnime}
+                    isLoading={isLoadingAiring}
+                    onLoadMore={loadMoreAiring}
+                    hasMore={hasMoreAiring}
+                    showWatchlist
+                  />
+                </div>
 
                 <ContinueWatchingSection />
 
-                <AnimeSectionGrid
-                  title="⭐ Top Anime"
-                  icon={<Star className="w-5 h-5 text-white" />}
-                  anime={popularAnime}
-                  isLoading={isLoadingPopular}
-                  onLoadMore={loadMorePopular}
-                  hasMore={hasMorePopular}
-                  showWatchlist
-                />
+                <div ref={popularRef}>
+                  <AnimeSectionGrid
+                    title="⭐ Top Anime"
+                    icon={<Star className="w-5 h-5 text-white" />}
+                    anime={popularAnime}
+                    isLoading={isLoadingPopular}
+                    onLoadMore={loadMorePopular}
+                    hasMore={hasMorePopular}
+                    showWatchlist
+                  />
+                </div>
               </div>
 
-              {/* Right Sidebar — Genre + Most Viewed (20 items) */}
+              {/* Right Sidebar */}
               <div className="hidden lg:block w-72 flex-shrink-0">
                 <div className="sticky top-20 space-y-8 max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-none">
                   <GenreSidebar />
@@ -236,47 +329,55 @@ const AnimeFinder = () => {
               </div>
             </div>
 
-            {/* Full-width sections AFTER sidebar ends — starts with Recently Added */}
+            {/* Full-width sections */}
             <div className="mt-10 space-y-0">
-              <AnimeSectionGrid
-                title="🆕 Recently Added"
-                icon={<Clock className="w-5 h-5 text-white" />}
-                anime={recentlyAddedAnime}
-                isLoading={isLoadingRecent}
-                onLoadMore={loadMoreRecent}
-                hasMore={hasMoreRecent}
-                showWatchlist
-              />
+              <div ref={recentRef}>
+                <AnimeSectionGrid
+                  title="🆕 Recently Added"
+                  icon={<Clock className="w-5 h-5 text-white" />}
+                  anime={recentlyAddedAnime}
+                  isLoading={isLoadingRecent}
+                  onLoadMore={loadMoreRecent}
+                  hasMore={hasMoreRecent}
+                  showWatchlist
+                />
+              </div>
 
-              <AnimeSectionGrid
-                title="🎬 Movies"
-                icon={<Film className="w-5 h-5 text-white" />}
-                anime={animeMovies}
-                isLoading={isLoadingMovies}
-                onLoadMore={loadMoreMovies}
-                hasMore={hasMoreMovies}
-                showWatchlist
-              />
+              <div ref={moviesRef}>
+                <AnimeSectionGrid
+                  title="🎬 Movies"
+                  icon={<Film className="w-5 h-5 text-white" />}
+                  anime={animeMovies}
+                  isLoading={isLoadingMovies}
+                  onLoadMore={loadMoreMovies}
+                  hasMore={hasMoreMovies}
+                  showWatchlist
+                />
+              </div>
 
-              <AnimeSectionGrid
-                title="📡 TV Series"
-                icon={<Tv className="w-5 h-5 text-white" />}
-                anime={tvSeriesAnime}
-                isLoading={isLoadingTV}
-                onLoadMore={loadMoreTV}
-                hasMore={hasMoreTV}
-                showWatchlist
-              />
+              <div ref={tvRef}>
+                <AnimeSectionGrid
+                  title="📡 TV Series"
+                  icon={<Tv className="w-5 h-5 text-white" />}
+                  anime={tvSeriesAnime}
+                  isLoading={isLoadingTV}
+                  onLoadMore={loadMoreTV}
+                  hasMore={hasMoreTV}
+                  showWatchlist
+                />
+              </div>
 
-              <AnimeSectionGrid
-                title="📅 Upcoming"
-                icon={<Calendar className="w-5 h-5 text-white" />}
-                anime={upcomingAnime}
-                isLoading={isLoadingUpcoming}
-                onLoadMore={loadMoreUpcoming}
-                hasMore={hasMoreUpcoming}
-                showWatchlist
-              />
+              <div ref={upcomingRef}>
+                <AnimeSectionGrid
+                  title="📅 Upcoming"
+                  icon={<Calendar className="w-5 h-5 text-white" />}
+                  anime={upcomingAnime}
+                  isLoading={isLoadingUpcoming}
+                  onLoadMore={loadMoreUpcoming}
+                  hasMore={hasMoreUpcoming}
+                  showWatchlist
+                />
+              </div>
 
               <AiringSchedule />
             </div>

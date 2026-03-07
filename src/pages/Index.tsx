@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FolderHeart, Sparkles, Menu, X } from 'lucide-react';
+import { LayoutDashboard, FolderHeart, Sparkles, Menu, X, Shuffle, ArrowUpDown, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SpinningWheel from '@/components/SpinningWheel';
 import WheelInput from '@/components/WheelInput';
@@ -19,6 +19,8 @@ const Index = () => {
   const [selectedItem, setSelectedItem] = useState<WheelDisplayItem | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'entries' | 'results'>('entries');
+  const [results, setResults] = useState<WheelDisplayItem[]>([]);
 
   const {
     displayItems,
@@ -38,6 +40,9 @@ const Index = () => {
   };
 
   const handleConfirmDelete = async () => {
+    if (selectedItem) {
+      setResults(prev => [...prev, selectedItem]);
+    }
     await deleteAndSaveToList(selectedIndex);
     setShowDeleteDialog(false);
     setSelectedItem(null);
@@ -49,6 +54,20 @@ const Index = () => {
     setSelectedItem(null);
     setSelectedIndex(-1);
   };
+
+  const shuffleItems = () => {
+    if (displayItems.length < 2) return;
+    const shuffled = [...displayItems].sort(() => Math.random() - 0.5);
+    clearAllItems().then(() => addWheelItems(shuffled));
+  };
+
+  const sortItems = () => {
+    if (displayItems.length < 2) return;
+    const sorted = [...displayItems].sort((a, b) => a.name.localeCompare(b.name));
+    clearAllItems().then(() => addWheelItems(sorted));
+  };
+
+  const clearResults = () => setResults([]);
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -116,16 +135,16 @@ const Index = () => {
             />
           </motion.div>
 
-          {/* Controls */}
+          {/* Right Panel - Entries/Results */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
-            className="w-full xl:w-auto space-y-4"
+            className="w-full xl:w-[420px] space-y-4"
           >
             {/* List Selector */}
             <motion.div 
-              className="glass rounded-2xl p-4 w-full max-w-md border border-border/10"
+              className="glass rounded-2xl p-4 border border-border/10"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -135,18 +154,114 @@ const Index = () => {
                 Save Winners To:
               </h3>
               <ListSelector lists={lists} selectedListId={selectedListId} onSelectList={setSelectedListId} />
-              <p className="text-xs text-muted-foreground mt-2">
-                Winner remove karne par isi list me save hoga
-              </p>
             </motion.div>
 
-            {/* Wheel Input */}
-            <WheelInput
-              items={displayItems}
-              onAddItems={addWheelItems}
-              onRemoveItem={removeWheelItem}
-              onClearAll={clearAllItems}
-            />
+            {/* Entries/Results Tabs Panel */}
+            <div className="bg-card/80 backdrop-blur-xl border border-border/30 rounded-2xl overflow-hidden shadow-2xl">
+              {/* Tab Header */}
+              <div className="flex border-b border-border/20">
+                <button
+                  onClick={() => setActiveTab('entries')}
+                  className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
+                    activeTab === 'entries'
+                      ? 'text-foreground border-b-2 border-primary bg-primary/5'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Entries
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold">{displayItems.length}</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('results')}
+                  className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
+                    activeTab === 'results'
+                      ? 'text-foreground border-b-2 border-primary bg-primary/5'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Results
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-accent/20 text-accent font-bold">{results.length}</span>
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <AnimatePresence mode="wait">
+                {activeTab === 'entries' ? (
+                  <motion.div
+                    key="entries"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 p-3 border-b border-border/10">
+                      <Button variant="outline" size="sm" onClick={shuffleItems} className="rounded-lg text-xs gap-1.5 border-border/20">
+                        <Shuffle className="w-3.5 h-3.5" /> Shuffle
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={sortItems} className="rounded-lg text-xs gap-1.5 border-border/20">
+                        <ArrowUpDown className="w-3.5 h-3.5" /> Sort
+                      </Button>
+                    </div>
+
+                    <WheelInput
+                      items={displayItems}
+                      onAddItems={addWheelItems}
+                      onRemoveItem={removeWheelItem}
+                      onClearAll={clearAllItems}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="results"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {/* Results Actions */}
+                    <div className="flex gap-2 p-3 border-b border-border/10">
+                      <Button variant="outline" size="sm" onClick={sortItems} className="rounded-lg text-xs gap-1.5 border-border/20">
+                        <ArrowUpDown className="w-3.5 h-3.5" /> Sort
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={clearResults} className="rounded-lg text-xs gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10">
+                        <X className="w-3.5 h-3.5" /> Clear the list
+                      </Button>
+                    </div>
+
+                    {/* Results List */}
+                    <div className="max-h-[400px] overflow-y-auto">
+                      {results.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <List className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                          <p className="text-sm">No results yet</p>
+                          <p className="text-xs mt-1">Spin the wheel to get results!</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border/10">
+                          {results.map((item, index) => (
+                            <motion.div
+                              key={`result-${index}`}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              className="flex items-center gap-3 px-4 py-3 hover:bg-primary/5 transition-colors"
+                            >
+                              <span className="text-xs text-muted-foreground/40 font-mono w-5 text-right shrink-0">{index + 1}.</span>
+                              {item.imageUrl ? (
+                                <img src={item.imageUrl} alt={item.name} className="w-8 h-10 rounded-lg object-cover shrink-0 border border-border/20" />
+                              ) : (
+                                <div className="w-8 h-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 text-xs">🏆</div>
+                              )}
+                              <span className="flex-1 text-sm text-foreground font-medium truncate">{item.name}</span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </motion.div>
         </div>
       </main>
