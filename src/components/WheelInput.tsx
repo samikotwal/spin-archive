@@ -1,199 +1,60 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, RotateCcw, Tv, Loader2 } from 'lucide-react';
+import { Trash2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { WheelDisplayItem } from '@/hooks/useWheelData';
 
 interface WheelInputProps {
-  items: WheelDisplayItem[];
-  onAddItems: (items: WheelDisplayItem[]) => void;
+  items: string[];
+  onUpdateItems: (items: string[]) => void;
   onRemoveItem: (index: number) => void;
   onClearAll: () => void;
 }
 
-interface AiringAnime {
-  mal_id: number;
-  title: string;
-  images: { jpg: { image_url: string } };
-}
+const WheelInput = ({ items, onUpdateItems, onRemoveItem, onClearAll }: WheelInputProps) => {
+  const [textValue, setTextValue] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [initialized, setInitialized] = useState(false);
 
-const WheelInput = ({ items, onAddItems, onRemoveItem, onClearAll }: WheelInputProps) => {
-  const [inputValue, setInputValue] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
-  const [airingAnime, setAiringAnime] = useState<AiringAnime[]>([]);
-  const [loadingAiring, setLoadingAiring] = useState(false);
-  const [showAiring, setShowAiring] = useState(false);
-
+  // Sync items to textarea on mount or when items change externally
   useEffect(() => {
-    const fetchAiring = async () => {
-      setLoadingAiring(true);
-      try {
-        const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-        const today = days[new Date().getDay()];
-        const res = await fetch(`https://api.jikan.moe/v4/schedules?filter=${today}&limit=20&sfw=true`);
-        const data = await res.json();
-        setAiringAnime(data.data || []);
-      } catch {
-        setAiringAnime([]);
-      }
-      setLoadingAiring(false);
-    };
-    fetchAiring();
-  }, []);
-
-  const addItemByName = async (name: string) => {
-    if (!name.trim()) return;
-    setIsAdding(true);
-    try {
-      const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(name.trim())}&limit=1&sfw=true`);
-      const data = await res.json();
-      const anime = data.data?.[0];
-      if (anime) {
-        onAddItems([{ name: anime.title, imageUrl: anime.images?.jpg?.image_url }]);
-      } else {
-        onAddItems([{ name: name.trim() }]);
-      }
-    } catch {
-      onAddItems([{ name: name.trim() }]);
+    if (!initialized && items.length > 0) {
+      setTextValue(items.join('\n'));
+      setInitialized(true);
+    } else if (items.length === 0 && initialized) {
+      setTextValue('');
     }
-    setIsAdding(false);
-  };
+  }, [items, initialized]);
 
-  const parseAndAddItems = async () => {
-    if (!inputValue.trim()) return;
-    const parsed = inputValue
-      .split(/[\n,]+/)
-      .map(item => item.trim())
-      .filter(item => item.length > 0);
-    
-    if (parsed.length > 0) {
-      setInputValue('');
-      for (const name of parsed) {
-        await addItemByName(name);
-        if (parsed.length > 1) await new Promise(r => setTimeout(r, 400));
-      }
-    }
-  };
+  // When items change externally (e.g. after remove/shuffle), sync
+  useEffect(() => {
+    setTextValue(items.join('\n'));
+  }, [items]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      parseAndAddItems();
-    }
-  };
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setTextValue(value);
 
-  const addAiringAnime = (anime: AiringAnime) => {
-    const alreadyExists = items.some(i => i.name === anime.title);
-    if (alreadyExists) return;
-    onAddItems([{ name: anime.title, imageUrl: anime.images?.jpg?.image_url }]);
+    // Parse lines into items
+    const parsed = value
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+
+    onUpdateItems(parsed);
   };
 
   return (
-    <div>
-      {/* Input Area */}
-      <div className="p-3 border-b border-border/10">
-        <div className="flex gap-2">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type name... (auto-fetches anime card)"
-            disabled={isAdding}
-            className="bg-background/50 border-border/20 text-foreground placeholder:text-muted-foreground rounded-xl text-sm"
-          />
-          <Button 
-            onClick={parseAndAddItems} 
-            size="sm" 
-            disabled={isAdding || !inputValue.trim()}
-            className="bg-gradient-to-r from-primary to-accent text-white shrink-0 rounded-xl"
-          >
-            {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          📝 Name likho, anime card khud aa jayega! Comma se alag karo.
-        </p>
-      </div>
-
-      {/* Currently Airing Toggle */}
-      <div className="border-b border-border/10">
-        <button
-          className="w-full px-4 py-2.5 flex items-center gap-2 text-xs font-bold text-primary hover:bg-primary/5 transition-colors"
-          onClick={() => setShowAiring(!showAiring)}
-        >
-          <Tv className="w-3.5 h-3.5" />
-          Currently Airing — Quick Add
-          <span className="ml-auto text-muted-foreground">{showAiring ? '▲' : '▼'}</span>
-        </button>
-        {showAiring && (
-          <div className="px-3 pb-3 max-h-40 overflow-y-auto">
-            {loadingAiring ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {airingAnime.slice(0, 15).map((anime) => {
-                  const isAdded = items.some(i => i.name === anime.title);
-                  return (
-                    <motion.button
-                      key={anime.mal_id}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => addAiringAnime(anime)}
-                      disabled={isAdded}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        isAdded 
-                          ? 'bg-primary/20 text-primary border border-primary/30 cursor-not-allowed' 
-                          : 'bg-secondary/50 text-foreground hover:bg-primary/10 hover:text-primary border border-border/20'
-                      }`}
-                    >
-                      <img src={anime.images?.jpg?.image_url} alt="" className="w-4 h-4 rounded-full object-cover" />
-                      <span className="max-w-[100px] truncate">{anime.title}</span>
-                      {isAdded && <span className="text-[10px]">✓</span>}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Items List */}
-      <div className="max-h-72 overflow-y-auto">
-        {items.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground">
-            <div className="text-4xl mb-2">🎯</div>
-            <p className="text-sm">Wheel khali hai</p>
-            <p className="text-xs mt-1">Name type karo ya airing anime se add karo!</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border/10">
-            {items.map((item, index) => (
-              <motion.div
-                key={`${item.name}-${index}`}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center gap-3 px-4 py-2.5 group hover:bg-primary/5 transition-colors"
-              >
-                <span className="text-xs text-muted-foreground/40 font-mono w-5 text-right shrink-0">{index + 1}.</span>
-                {item.imageUrl ? (
-                  <img src={item.imageUrl} alt={item.name} className="w-8 h-10 rounded-lg object-cover shrink-0 border border-border/20 shadow-sm" />
-                ) : (
-                  <div className="w-8 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-xs">🎯</div>
-                )}
-                <span className="flex-1 text-sm text-foreground truncate font-medium">{item.name}</span>
-                <motion.div whileHover={{ scale: 1.1 }} className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="sm" onClick={() => onRemoveItem(index)} className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </motion.div>
-              </motion.div>
-            ))}
-          </div>
-        )}
+    <div className="flex flex-col h-full">
+      {/* Textarea - wheelofnames style */}
+      <div className="flex-1 min-h-0">
+        <textarea
+          ref={textareaRef}
+          value={textValue}
+          onChange={handleTextChange}
+          placeholder={"Enter one item per line\n\nExample:\nNaruto\nOne Piece\nDemon Slayer\nJujutsu Kaisen"}
+          className="w-full h-full min-h-[300px] resize-none bg-transparent text-foreground text-sm leading-7 p-4 focus:outline-none placeholder:text-muted-foreground/50 font-medium"
+          spellCheck={false}
+        />
       </div>
 
       {/* Footer */}
@@ -203,7 +64,7 @@ const WheelInput = ({ items, onAddItems, onRemoveItem, onClearAll }: WheelInputP
             variant="outline"
             size="sm"
             onClick={onClearAll}
-            className="w-full border-destructive/30 text-destructive hover:bg-destructive/10 rounded-xl text-xs"
+            className="w-full border-destructive/30 text-destructive hover:bg-destructive/10 rounded-lg text-xs"
           >
             <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
             Clear All ({items.length})
