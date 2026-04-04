@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 
 interface SpinningWheelProps {
   items: string[];
@@ -23,139 +23,130 @@ const WHEEL_COLORS = [
 
 const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: SpinningWheelProps) => {
   const [rotation, setRotation] = useState(0);
-  const wheelRef = useRef<SVGSVGElement>(null);
-  const [tickSound] = useState(() => {
-    try {
-      const ctx = new AudioContext();
-      return ctx;
-    } catch { return null; }
-  });
 
-  const spinWheel = () => {
+  const spinWheel = useCallback(() => {
     if (isSpinning || items.length === 0) return;
     setIsSpinning(true);
 
-    const baseSpins = 5 + Math.random() * 5;
+    const spins = 5 + Math.random() * 5;
     const randomOffset = Math.random() * 360;
-    const totalRotation = rotation + (baseSpins * 360) + randomOffset;
-    setRotation(totalRotation);
+    const total = rotation + spins * 360 + randomOffset;
+    setRotation(total);
 
     setTimeout(() => {
-      const normalizedRotation = totalRotation % 360;
+      const norm = total % 360;
       const sliceAngle = 360 / items.length;
-      // Pointer is at the right side (0 degrees in SVG = 3 o'clock)
-      const adjustedRotation = (360 - normalizedRotation) % 360;
-      const selectedIdx = Math.floor(adjustedRotation / sliceAngle) % items.length;
+      // Pointer at right (3 o'clock = 0°)
+      const adjusted = (360 - norm) % 360;
+      const idx = Math.floor(adjusted / sliceAngle) % items.length;
       setIsSpinning(false);
-      onSpinEnd(items[selectedIdx], selectedIdx);
-    }, 5000);
-  };
+      onSpinEnd(items[idx], idx);
+    }, 4500);
+  }, [isSpinning, items, rotation, onSpinEnd, setIsSpinning]);
 
   const renderSlice = (item: string, index: number, total: number) => {
-    const sliceAngle = 360 / total;
-    const startAngle = index * sliceAngle;
-    const endAngle = startAngle + sliceAngle;
-    const midAngle = startAngle + sliceAngle / 2;
-
-    const startRad = (startAngle) * (Math.PI / 180);
-    const endRad = (endAngle) * (Math.PI / 180);
-    const midRad = (midAngle) * (Math.PI / 180);
-
-    const radius = 190;
+    const angle = 360 / total;
+    const start = index * angle;
+    const end = start + angle;
+    const mid = start + angle / 2;
+    const r = 190;
     const cx = 200, cy = 200;
 
-    const x1 = cx + radius * Math.cos(startRad);
-    const y1 = cy + radius * Math.sin(startRad);
-    const x2 = cx + radius * Math.cos(endRad);
-    const y2 = cy + radius * Math.sin(endRad);
+    const startRad = start * Math.PI / 180;
+    const endRad = end * Math.PI / 180;
+    const midRad = mid * Math.PI / 180;
 
-    const largeArc = sliceAngle > 180 ? 1 : 0;
-    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    const x1 = cx + r * Math.cos(startRad);
+    const y1 = cy + r * Math.sin(startRad);
+    const x2 = cx + r * Math.cos(endRad);
+    const y2 = cy + r * Math.sin(endRad);
+
+    const largeArc = angle > 180 ? 1 : 0;
+    const path = `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2} Z`;
     const color = WHEEL_COLORS[index % WHEEL_COLORS.length];
 
-    // Text along radius
-    const textR = radius * 0.62;
+    const textR = r * 0.65;
     const textX = cx + textR * Math.cos(midRad);
     const textY = cy + textR * Math.sin(midRad);
-    const textAngle = midAngle;
 
-    const maxChars = Math.max(6, Math.floor(sliceAngle / 8));
-    const displayText = item.length > maxChars ? item.substring(0, maxChars) + '…' : item;
-    const fontSize = Math.max(10, Math.min(22, 400 / total));
+    const maxLen = Math.max(6, Math.floor(angle / 7));
+    const label = item.length > maxLen ? item.substring(0, maxLen - 1) + '…' : item;
+    const fs = Math.max(9, Math.min(20, 360 / total));
 
     return (
       <g key={index}>
-        <path d={path} fill={color} stroke="white" strokeWidth="1.5" />
+        <path d={path} fill={color} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
         <text
-          x={textX}
-          y={textY}
+          x={textX} y={textY}
           fill="white"
-          fontSize={fontSize}
+          fontSize={fs}
           fontWeight="700"
           textAnchor="middle"
           dominantBaseline="middle"
-          transform={`rotate(${textAngle}, ${textX}, ${textY})`}
-          style={{
-            textShadow: '1px 1px 3px rgba(0,0,0,0.5)',
-            fontFamily: "'Inter', system-ui, sans-serif",
-          }}
+          transform={`rotate(${mid}, ${textX}, ${textY})`}
+          style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.6)', fontFamily: "'Inter', system-ui" }}
         >
-          {displayText}
+          {label}
         </text>
       </g>
     );
   };
 
+  const size = 'min(75vw, 520px)';
+
   return (
-    <div className="relative flex items-center justify-center select-none" style={{ width: 'min(80vw, 500px)', height: 'min(80vw, 500px)' }}>
-      {/* Wheel SVG */}
+    <div className="relative flex items-center justify-center select-none" style={{ width: size, height: size }}>
+      {/* Outer dark ring */}
+      <div className="absolute inset-0 rounded-full" style={{
+        background: 'radial-gradient(circle, transparent 46%, rgba(0,0,0,0.4) 48%, rgba(0,0,0,0.15) 50%, transparent 52%)',
+      }} />
+
       <motion.svg
-        ref={wheelRef}
         viewBox="0 0 400 400"
-        className="w-full h-full cursor-pointer drop-shadow-xl"
+        className="w-full h-full cursor-pointer"
+        style={{ filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.4))' }}
         animate={{ rotate: rotation }}
-        transition={{ duration: 5, ease: [0.15, 0.85, 0.1, 1] }}
+        transition={{ duration: 4.5, ease: [0.15, 0.85, 0.05, 1] }}
         onClick={spinWheel}
       >
         {/* Outer ring */}
-        <circle cx="200" cy="200" r="198" fill="none" stroke="hsl(var(--border))" strokeWidth="3" opacity="0.3" />
+        <circle cx="200" cy="200" r="196" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
 
         {items.length > 0 ? (
           items.map((item, i) => renderSlice(item, i, items.length))
         ) : (
           <>
-            <circle cx="200" cy="200" r="190" fill="hsl(var(--muted))" />
-            <text x="200" y="200" fill="hsl(var(--muted-foreground))" fontSize="16" textAnchor="middle" dominantBaseline="middle">
-              Add items to spin
+            <circle cx="200" cy="200" r="190" fill="#333" />
+            <text x="200" y="200" fill="#888" fontSize="14" textAnchor="middle" dominantBaseline="middle">
+              Add entries to spin
             </text>
           </>
         )}
 
-        {/* Center circle - white */}
-        <circle cx="200" cy="200" r="40" fill="white" stroke="hsl(var(--border))" strokeWidth="2" />
+        {/* White center circle */}
+        <circle cx="200" cy="200" r="38" fill="white" />
+        <circle cx="200" cy="200" r="38" fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="1" />
 
-        {/* Click to spin text in center */}
+        {/* Center text */}
         {!isSpinning && items.length > 0 && (
           <>
-            <text x="200" y="193" fill="hsl(var(--foreground))" fontSize="11" fontWeight="800" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: "'Inter', system-ui" }}>
-              Click to
-            </text>
-            <text x="200" y="210" fill="hsl(var(--foreground))" fontSize="13" fontWeight="900" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: "'Inter', system-ui" }}>
-              spin
-            </text>
+            <text x="200" y="194" fill="#333" fontSize="10" fontWeight="700" textAnchor="middle" dominantBaseline="middle"
+              style={{ fontFamily: "'Inter', system-ui" }}>Tap to</text>
+            <text x="200" y="208" fill="#333" fontSize="12" fontWeight="900" textAnchor="middle" dominantBaseline="middle"
+              style={{ fontFamily: "'Inter', system-ui" }}>spin</text>
           </>
         )}
         {isSpinning && (
-          <text x="200" y="200" fill="hsl(var(--primary))" fontSize="11" fontWeight="800" textAnchor="middle" dominantBaseline="middle">
-            Spinning...
+          <text x="200" y="200" fill="#4285F4" fontSize="10" fontWeight="800" textAnchor="middle" dominantBaseline="middle">
+            ●●●
           </text>
         )}
       </motion.svg>
 
-      {/* Right-side pointer (arrow) */}
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 z-20">
-        <svg width="30" height="40" viewBox="0 0 30 40">
-          <polygon points="0,0 30,20 0,40" fill="#4285F4" stroke="white" strokeWidth="2" />
+      {/* Right pointer (golden triangle) */}
+      <div className="absolute right-[-8px] top-1/2 -translate-y-1/2 z-20">
+        <svg width="28" height="36" viewBox="0 0 28 36">
+          <polygon points="0,0 28,18 0,36" fill="#FBBC04" stroke="white" strokeWidth="2" />
         </svg>
       </div>
     </div>
