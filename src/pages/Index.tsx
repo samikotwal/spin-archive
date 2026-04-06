@@ -78,17 +78,10 @@ const Index = () => {
 
     if (eliminationMode) {
       if (isUsingNewSystem && entries[selectedIndex]) {
-        const { removeEntry } = await import('@/hooks/useWheels').then(() => ({ removeEntry: () => {} }));
-        // For elimination, remove from entries
         const entry = entries[selectedIndex];
         if (entry) {
-          const { supabase } = await import('@/integrations/supabase/client');
-          await supabase.from('entries').delete().eq('id', entry.id);
-          // Refresh entries
-          if (activeWheelId) {
-            const newValues = entryValues.filter((_, i) => i !== selectedIndex);
-            updateEntries(newValues);
-          }
+          const newValues = entryValues.filter((_, i) => i !== selectedIndex);
+          await updateEntries(newValues);
         }
       } else {
         await deleteAndSaveToList(selectedIndex);
