@@ -15,12 +15,13 @@ const WHEEL_COLORS = [
   '#8BC34A', '#9C27B0', '#00BCD4', '#FF5722',
 ];
 
-const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning }: SpinningWheelProps) => {
+const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStart }: SpinningWheelProps) => {
   const [rotation, setRotation] = useState(0);
 
   const spinWheel = useCallback(() => {
     if (isSpinning || items.length === 0) return;
     setIsSpinning(true);
+    onSpinStart?.();
     const spins = 5 + Math.random() * 5;
     const randomOffset = Math.random() * 360;
     const total = rotation + spins * 360 + randomOffset;

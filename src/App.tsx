@@ -13,6 +13,7 @@ import Favorites from "./pages/Favorites";
 import GenrePage from "./pages/GenrePage";
 import Auth from "./pages/Auth";
 import AlphabetBrowse from "./pages/AlphabetBrowse";
+import Multiplayer from "./pages/Multiplayer";
 import NotFound from "./pages/NotFound";
 import MobileBottomNav from "./components/MobileBottomNav";
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/saved" element={<SavedLists />} />
           <Route path="/browse/:letter" element={<AlphabetBrowse />} />
+          <Route path="/multiplayer" element={<Multiplayer />} />
           <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
