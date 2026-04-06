@@ -64,6 +64,44 @@ export type Database = {
           },
         ]
       }
+      entries: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          sort_order: number
+          value: string
+          weight: number
+          wheel_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          sort_order?: number
+          value: string
+          weight?: number
+          wheel_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          sort_order?: number
+          value?: string
+          weight?: number
+          wheel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entries_wheel_id_fkey"
+            columns: ["wheel_id"]
+            isOneToOne: false
+            referencedRelation: "wheels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string
@@ -112,6 +150,35 @@ export type Database = {
         }
         Relationships: []
       }
+      participants: {
+        Row: {
+          id: string
+          joined_at: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -139,6 +206,73 @@ export type Database = {
         }
         Relationships: []
       }
+      rooms: {
+        Row: {
+          code: string
+          created_at: string
+          host_id: string
+          id: string
+          is_active: boolean
+          wheel_id: string | null
+        }
+        Insert: {
+          code?: string
+          created_at?: string
+          host_id: string
+          id?: string
+          is_active?: boolean
+          wheel_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          host_id?: string
+          id?: string
+          is_active?: boolean
+          wheel_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooms_wheel_id_fkey"
+            columns: ["wheel_id"]
+            isOneToOne: false
+            referencedRelation: "wheels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spins: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          wheel_id: string
+          winner_value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          wheel_id: string
+          winner_value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          wheel_id?: string
+          winner_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spins_wheel_id_fkey"
+            columns: ["wheel_id"]
+            isOneToOne: false
+            referencedRelation: "wheels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wheel_items: {
         Row: {
           created_at: string
@@ -160,6 +294,39 @@ export type Database = {
           image_url?: string | null
           is_deleted?: boolean
           value?: string
+        }
+        Relationships: []
+      }
+      wheels: {
+        Row: {
+          created_at: string
+          id: string
+          is_public: boolean
+          share_code: string | null
+          theme: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          share_code?: string | null
+          theme?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          share_code?: string | null
+          theme?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

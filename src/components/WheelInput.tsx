@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 interface WheelInputProps {
   items: string[];
   onUpdateItems: (items: string[]) => void;
-  onRemoveItem: (index: number) => void;
+  onRemoveItem?: (index: number) => void;
   onClearAll: () => void;
 }
 
