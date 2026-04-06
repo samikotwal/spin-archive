@@ -6,6 +6,7 @@ interface SpinningWheelProps {
   onSpinEnd: (selectedItem: string, index: number) => void;
   isSpinning: boolean;
   setIsSpinning: (spinning: boolean) => void;
+  onSpinStart?: () => void;
 }
 
 const WHEEL_COLORS = [
