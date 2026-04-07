@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap } from 'lucide-react';
+import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SpinningWheel from '@/components/SpinningWheel';
 import WheelInput from '@/components/WheelInput';
@@ -9,6 +9,7 @@ import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import ListSelector from '@/components/ListSelector';
 import WheelSidebar from '@/components/WheelSidebar';
 import SpinHistoryPanel from '@/components/SpinHistoryPanel';
+import ExportResults from '@/components/ExportResults';
 import { useWheelData } from '@/hooks/useWheelData';
 import { useWheels } from '@/hooks/useWheels';
 import { useSpinHistory } from '@/hooks/useSpinHistory';
@@ -133,21 +134,27 @@ const Index = () => {
   // --- Sub-components ---
 
   const TabBar = () => (
-    <div className="flex shrink-0">
-      {(['entries', 'results', 'history'] as const).map(tab => (
-        <motion.button key={tab} onClick={() => setActiveTab(tab)}
-          className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 relative transition-colors ${
-            activeTab === tab ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-          }`}
-          whileTap={{ scale: 0.97 }}
-        >
-          {tab === 'entries' ? <Pencil className="w-3 h-3" /> : tab === 'results' ? <Trophy className="w-3 h-3" /> : <BarChart3 className="w-3 h-3" />}
-          {tab}
-          {activeTab === tab && (
-            <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" transition={spring} />
-          )}
-        </motion.button>
-      ))}
+    <div className="flex shrink-0 border-b border-border/10">
+      {(['entries', 'results', 'history'] as const).map(tab => {
+        const count = tab === 'entries' ? currentItems.length : tab === 'results' ? results.length : history.length;
+        return (
+          <motion.button key={tab} onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 relative transition-colors ${
+              activeTab === tab ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+            whileTap={{ scale: 0.97 }}
+          >
+            {tab === 'entries' ? <Pencil className="w-3 h-3" /> : tab === 'results' ? <Trophy className="w-3 h-3" /> : <BarChart3 className="w-3 h-3" />}
+            {tab}
+            {count > 0 && (
+              <span className="ml-1 bg-muted text-muted-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{count}</span>
+            )}
+            {activeTab === tab && (
+              <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" transition={spring} />
+            )}
+          </motion.button>
+        );
+      })}
     </div>
   );
 
@@ -182,6 +189,7 @@ const Index = () => {
               <ArrowUpDown className="w-3 h-3" /> Sort
             </Button>
           </motion.div>
+          <ExportResults results={results} history={history} />
           {results.length > 0 && (
             <motion.div whileTap={{ scale: 0.93 }}>
               <Button variant="outline" size="sm" onClick={() => setResults([])}
@@ -191,6 +199,8 @@ const Index = () => {
             </motion.div>
           )}
         </>
+      ) : activeTab === 'history' ? (
+        <ExportResults results={results} history={history} />
       ) : null}
     </div>
   );
