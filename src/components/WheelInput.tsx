@@ -22,7 +22,7 @@ const fetchAnimeImage = async (name: string): Promise<string | null> => {
     const json = await res.json();
     const img = json?.data?.[0]?.images?.jpg?.small_image_url || null;
     // Only cache if the title is a close match
-    const title = json?.data?>[0]?.title?.toLowerCase() || '';
+    const title = json?.data?.[0]?.title?.toLowerCase() || '';
     if (title.includes(key) || key.includes(title.split(' ')[0])) {
       imageCache[key] = img;
       return img;
