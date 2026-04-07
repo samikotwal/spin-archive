@@ -250,7 +250,7 @@ const Index = () => {
         <Bookmark className="w-3 h-3 text-muted-foreground" />
         <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Save removed to</p>
       </div>
-      <ListSelector lists={lists} selectedListId={selectedListId} onSelectList={setSelectedListId} />
+      <ListSelector lists={lists} selectedListId={selectedListId} onSelectList={setSelectedListId} getListItems={getListItems} />
     </div>
   );
 
