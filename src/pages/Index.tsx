@@ -328,7 +328,7 @@ const Index = () => {
           <div className="overflow-y-auto" style={{ maxHeight: 'calc(42vh - 100px)' }}>
             <PanelContent />
           </div>
-          {!isUsingNewSystem && <SaveListBar />}
+          <SaveListBar />
         </motion.div>
 
         <DeleteConfirmDialog isOpen={showDeleteDialog} selectedItem={selectedItem || ''}
@@ -413,7 +413,7 @@ const Index = () => {
               <TabBar />
               <ActionBar />
               <PanelContent />
-              {!isUsingNewSystem && <SaveListBar />}
+              <SaveListBar />
             </motion.div>
           )}
         </AnimatePresence>
