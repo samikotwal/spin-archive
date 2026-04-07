@@ -37,7 +37,7 @@ const Index = () => {
   // Legacy wheel data (for non-logged-in users)
   const {
     wheelItems, lists, selectedListId, setSelectedListId,
-    addWheelItems, removeWheelItem, deleteAndSaveToList, clearAllItems,
+    addWheelItems, removeWheelItem, deleteAndSaveToList, clearAllItems, getListItems,
   } = useWheelData();
 
   // New wheels system (for logged-in users)
@@ -250,7 +250,7 @@ const Index = () => {
         <Bookmark className="w-3 h-3 text-muted-foreground" />
         <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Save removed to</p>
       </div>
-      <ListSelector lists={lists} selectedListId={selectedListId} onSelectList={setSelectedListId} />
+      <ListSelector lists={lists} selectedListId={selectedListId} onSelectList={setSelectedListId} getListItems={getListItems} />
     </div>
   );
 
@@ -328,7 +328,7 @@ const Index = () => {
           <div className="overflow-y-auto" style={{ maxHeight: 'calc(42vh - 100px)' }}>
             <PanelContent />
           </div>
-          {!isUsingNewSystem && <SaveListBar />}
+          <SaveListBar />
         </motion.div>
 
         <DeleteConfirmDialog isOpen={showDeleteDialog} selectedItem={selectedItem || ''}
@@ -413,7 +413,7 @@ const Index = () => {
               <TabBar />
               <ActionBar />
               <PanelContent />
-              {!isUsingNewSystem && <SaveListBar />}
+              <SaveListBar />
             </motion.div>
           )}
         </AnimatePresence>
