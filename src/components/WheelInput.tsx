@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, GripVertical, X } from 'lucide-react';
+import { RotateCcw, GripVertical, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface WheelInputProps {
@@ -10,16 +10,58 @@ interface WheelInputProps {
   onClearAll: () => void;
 }
 
+// Cache for anime images so we don't re-fetch
+const imageCache: Record<string, string | null> = {};
+
+const fetchAnimeImage = async (name: string): Promise<string | null> => {
+  const key = name.toLowerCase().trim();
+  if (key in imageCache) return imageCache[key];
+  try {
+    const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(name)}&limit=1&sfw=true`);
+    if (!res.ok) { imageCache[key] = null; return null; }
+    const json = await res.json();
+    const img = json?.data?.[0]?.images?.jpg?.small_image_url || null;
+    // Only cache if the title is a close match
+    const title = json?.data?.[0]?.title?.toLowerCase() || '';
+    if (title.includes(key) || key.includes(title.split(' ')[0])) {
+      imageCache[key] = img;
+      return img;
+    }
+    imageCache[key] = null;
+    return null;
+  } catch {
+    imageCache[key] = null;
+    return null;
+  }
+};
+
 const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [newValue, setNewValue] = useState('');
+  const [images, setImages] = useState<Record<string, string | null>>({});
+  const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+
+  // Fetch images for items we haven't fetched yet
+  useEffect(() => {
+    items.forEach(item => {
+      const key = item.toLowerCase().trim();
+      if (key in images || loadingImages.has(key) || key.length < 2) return;
+      setLoadingImages(prev => new Set(prev).add(key));
+      fetchAnimeImage(item).then(img => {
+        setImages(prev => ({ ...prev, [key]: img }));
+        setLoadingImages(prev => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      });
+    });
+  }, [items]);
 
   const handleAdd = () => {
     if (!newValue.trim()) return;
-    // Support comma-separated or newline-separated
     const parsed = newValue
       .split(/[\n,]+/)
       .map(s => s.trim())
@@ -39,8 +81,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
   };
 
   const handleRemove = (index: number) => {
-    const next = items.filter((_, i) => i !== index);
-    onUpdateItems(next);
+    onUpdateItems(items.filter((_, i) => i !== index));
   };
 
   const startEdit = (index: number) => {
@@ -64,6 +105,9 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
     if (e.key === 'Escape') { setEditingIndex(null); setEditValue(''); }
   };
 
+  const getImage = (item: string) => images[item.toLowerCase().trim()] || null;
+  const isLoading = (item: string) => loadingImages.has(item.toLowerCase().trim());
+
   return (
     <div className="flex flex-col h-full">
       {/* Add input */}
@@ -74,7 +118,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
             value={newValue}
             onChange={e => setNewValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type name... (comma separated)"
+            placeholder="Type name... (auto-fetches anime card)"
             className="flex-1 h-9 bg-secondary/50 border border-border/20 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors"
           />
           <motion.button
@@ -85,10 +129,13 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
             +
           </motion.button>
         </div>
+        <p className="text-[10px] text-muted-foreground/40 mt-1.5 px-1">
+          📝 Name likho, anime card khud aa jayega! Comma se alag karo.
+        </p>
       </div>
 
       {/* Numbered list */}
-      <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto mt-2">
+      <div className="flex-1 min-h-0 overflow-y-auto mt-2">
         {items.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-3xl mb-2">🎯</div>
@@ -97,22 +144,34 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
           </div>
         ) : (
           <div className="divide-y divide-border/5">
-            <AnimatePresence initial={false}>
-              {items.map((item, i) => (
+            {items.map((item, i) => {
+              const img = getImage(item);
+              const loading = isLoading(item);
+              return (
                 <motion.div
                   key={`${i}-${item}`}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="group flex items-center gap-1 px-2 hover:bg-muted/20 transition-colors"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.02 }}
+                  className="group flex items-center gap-2 px-2 py-1 hover:bg-muted/20 transition-colors"
                 >
                   {/* Number */}
-                  <span className="w-7 text-right text-xs text-muted-foreground/30 font-mono shrink-0 select-none">
+                  <span className="w-6 text-right text-[10px] text-muted-foreground/30 font-mono shrink-0 select-none">
                     {i + 1}.
                   </span>
 
-                  {/* Drag handle */}
-                  <GripVertical className="w-3 h-3 text-muted-foreground/15 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
+                  {/* Image or loading */}
+                  <div className="w-8 h-8 rounded shrink-0 overflow-hidden bg-muted/20 flex items-center justify-center">
+                    {loading ? (
+                      <Loader2 className="w-3 h-3 text-muted-foreground/30 animate-spin" />
+                    ) : img ? (
+                      <img src={img} alt={item} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground/20 font-bold">
+                        {item.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Name */}
                   {editingIndex === i ? (
@@ -122,12 +181,12 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
                       onChange={e => setEditValue(e.target.value)}
                       onKeyDown={handleEditKeyDown}
                       onBlur={commitEdit}
-                      className="flex-1 h-9 bg-transparent text-sm text-foreground font-medium px-1 focus:outline-none border-b border-primary/40"
+                      className="flex-1 h-8 bg-transparent text-sm text-foreground font-medium px-1 focus:outline-none border-b border-primary/40"
                     />
                   ) : (
                     <span
                       onClick={() => startEdit(i)}
-                      className="flex-1 h-9 flex items-center text-sm text-foreground font-medium px-1 cursor-text truncate"
+                      className="flex-1 text-sm text-foreground font-medium px-1 cursor-text truncate"
                     >
                       {item}
                     </span>
@@ -142,8 +201,8 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
                     <X className="w-3 h-3" />
                   </motion.button>
                 </motion.div>
-              ))}
-            </AnimatePresence>
+              );
+            })}
           </div>
         )}
       </div>
