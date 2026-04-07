@@ -37,7 +37,7 @@ const Index = () => {
   // Legacy wheel data (for non-logged-in users)
   const {
     wheelItems, lists, selectedListId, setSelectedListId,
-    addWheelItems, removeWheelItem, deleteAndSaveToList, clearAllItems,
+    addWheelItems, removeWheelItem, deleteAndSaveToList, clearAllItems, getListItems,
   } = useWheelData();
 
   // New wheels system (for logged-in users)
