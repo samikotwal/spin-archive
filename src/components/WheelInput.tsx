@@ -10,8 +10,10 @@ interface WheelInputProps {
   onClearAll: () => void;
 }
 
+interface AnimeInfo { image: string | null; title: string | null; }
+
 // Cache for anime images so we don't re-fetch
-const imageCache: Record<string, string | null> = {};
+const imageCache: Record<string, AnimeInfo> = {};
 
 const fetchAnimeImage = async (name: string): Promise<{ image: string | null; title: string | null }> => {
   const key = name.toLowerCase().trim();
