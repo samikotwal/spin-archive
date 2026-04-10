@@ -115,7 +115,7 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStar
         </g>
       );
     });
-  }, [items]);
+  }, [items, imageMap]);
 
   const size = 'min(70vw, 480px)';
 
