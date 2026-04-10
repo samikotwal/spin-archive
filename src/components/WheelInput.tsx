@@ -13,25 +13,32 @@ interface WheelInputProps {
 // Cache for anime images so we don't re-fetch
 const imageCache: Record<string, string | null> = {};
 
-const fetchAnimeImage = async (name: string): Promise<string | null> => {
+const fetchAnimeImage = async (name: string): Promise<{ image: string | null; title: string | null }> => {
   const key = name.toLowerCase().trim();
   if (key in imageCache) return imageCache[key];
   try {
-    const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(name)}&limit=1&sfw=true`);
-    if (!res.ok) { imageCache[key] = null; return null; }
+    const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(name)}&limit=3&sfw=true`);
+    if (!res.ok) { imageCache[key] = { image: null, title: null }; return { image: null, title: null }; }
     const json = await res.json();
-    const img = json?.data?.[0]?.images?.jpg?.small_image_url || null;
-    // Only cache if the title is a close match
-    const title = json?.data?.[0]?.title?.toLowerCase() || '';
-    if (title.includes(key) || key.includes(title.split(' ')[0])) {
-      imageCache[key] = img;
-      return img;
+    const results = json?.data || [];
+    // Find best match - check if any result title closely matches input
+    const match = results.find((r: any) => {
+      const t = (r.title || '').toLowerCase();
+      const tEn = (r.title_english || '').toLowerCase();
+      return t.includes(key) || key.includes(t.split(' ')[0]) || tEn.includes(key) || key.includes(tEn.split(' ')[0]);
+    }) || results[0]; // fallback to first result if input is close enough
+    
+    if (match && results.length > 0) {
+      const img = match.images?.jpg?.small_image_url || match.images?.jpg?.image_url || null;
+      const result = { image: img, title: match.title_english || match.title || null };
+      imageCache[key] = result;
+      return result;
     }
-    imageCache[key] = null;
-    return null;
+    imageCache[key] = { image: null, title: null };
+    return { image: null, title: null };
   } catch {
-    imageCache[key] = null;
-    return null;
+    imageCache[key] = { image: null, title: null };
+    return { image: null, title: null };
   }
 };
 
