@@ -58,8 +58,8 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
       const key = item.toLowerCase().trim();
       if (key in images || loadingImages.has(key) || key.length < 2) return;
       setLoadingImages(prev => new Set(prev).add(key));
-      fetchAnimeImage(item).then(img => {
-        setImages(prev => ({ ...prev, [key]: img }));
+      fetchAnimeImage(item).then(info => {
+        setImages(prev => ({ ...prev, [key]: info }));
         setLoadingImages(prev => {
           const next = new Set(prev);
           next.delete(key);
