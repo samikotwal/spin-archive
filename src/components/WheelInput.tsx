@@ -48,7 +48,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [newValue, setNewValue] = useState('');
-  const [images, setImages] = useState<Record<string, string | null>>({});
+  const [images, setImages] = useState<Record<string, AnimeInfo>>({});
   const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
