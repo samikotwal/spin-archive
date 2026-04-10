@@ -240,7 +240,7 @@ const Index = () => {
   const PanelContent = () => (
     <div className="flex-1 min-h-0 overflow-hidden">
       {activeTab === 'entries' ? (
-        <WheelInput items={currentItems} onUpdateItems={handleUpdateItems} onClearAll={handleClearAll} />
+        <WheelInput items={currentItems} onUpdateItems={handleUpdateItems} onClearAll={handleClearAll} onImagesChange={handleImagesChange} />
       ) : activeTab === 'results' ? (
         <ResultsList />
       ) : (
