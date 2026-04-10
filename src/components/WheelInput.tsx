@@ -154,7 +154,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
         ) : (
           <div className="divide-y divide-border/5">
             {items.map((item, i) => {
-              const img = getImage(item);
+              const info = getAnimeInfo(item);
               const loading = isLoading(item);
               return (
                 <motion.div
@@ -162,19 +162,21 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.02 }}
-                  className="group flex items-center gap-2 px-2 py-1 hover:bg-muted/20 transition-colors"
+                  className="group flex items-center gap-2 px-2 py-1.5 hover:bg-muted/20 transition-colors"
                 >
                   {/* Number */}
                   <span className="w-6 text-right text-[10px] text-muted-foreground/30 font-mono shrink-0 select-none">
                     {i + 1}.
                   </span>
 
-                  {/* Image or loading */}
-                  <div className="w-8 h-8 rounded shrink-0 overflow-hidden bg-muted/20 flex items-center justify-center">
+                  {/* Image or letter fallback */}
+                  <div className={`shrink-0 overflow-hidden flex items-center justify-center ${
+                    info?.image ? 'w-10 h-10 rounded-lg' : 'w-8 h-8 rounded'
+                  } bg-muted/20`}>
                     {loading ? (
                       <Loader2 className="w-3 h-3 text-muted-foreground/30 animate-spin" />
-                    ) : img ? (
-                      <img src={img} alt={item} className="w-full h-full object-cover" />
+                    ) : info?.image ? (
+                      <img src={info.image} alt={item} className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-[10px] text-muted-foreground/20 font-bold">
                         {item.charAt(0).toUpperCase()}
