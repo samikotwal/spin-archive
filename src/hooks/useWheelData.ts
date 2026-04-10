@@ -118,6 +118,25 @@ export const useWheelData = () => {
       return false;
     }
 
+    // Check for duplicates in the selected list
+    const { data: existingItems } = await supabase
+      .from('deleted_items')
+      .select('id')
+      .eq('list_id', selectedListId)
+      .eq('value', item.value)
+      .limit(1);
+
+    if (existingItems && existingItems.length > 0) {
+      toast({ title: 'Duplicate', description: `"${item.value}" is already in this list`, variant: 'destructive' });
+      // Still remove from wheel even if duplicate in list
+      const { error: updateError } = await supabase
+        .from('wheel_items')
+        .update({ is_deleted: true })
+        .eq('id', item.id);
+      if (!updateError) setWheelItems(prev => prev.filter((_, i) => i !== index));
+      return false;
+    }
+
     const { error: insertError } = await supabase
       .from('deleted_items')
       .insert({ value: item.value, list_id: selectedListId });

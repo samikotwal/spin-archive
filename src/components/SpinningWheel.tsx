@@ -30,7 +30,8 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStar
     setTimeout(() => {
       const norm = total % 360;
       const sliceAngle = 360 / items.length;
-      const adjusted = (360 - norm) % 360;
+      // Pointer is at top (270deg / -90deg), so adjust accordingly
+      const adjusted = (360 - norm + 270) % 360;
       const idx = Math.floor(adjusted / sliceAngle) % items.length;
       setIsSpinning(false);
       onSpinEnd(items[idx], idx);
