@@ -7,6 +7,7 @@ interface SpinningWheelProps {
   isSpinning: boolean;
   setIsSpinning: (spinning: boolean) => void;
   onSpinStart?: () => void;
+  imageMap?: Record<string, { image: string | null; title: string | null }>;
 }
 
 const WHEEL_COLORS = [
@@ -15,7 +16,7 @@ const WHEEL_COLORS = [
   '#8BC34A', '#9C27B0', '#00BCD4', '#FF5722',
 ];
 
-const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStart }: SpinningWheelProps) => {
+const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStart, imageMap = {} }: SpinningWheelProps) => {
   const [rotation, setRotation] = useState(0);
 
   const spinWheel = useCallback(() => {
@@ -61,16 +62,48 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStar
       const path = `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2} Z`;
       const color = WHEEL_COLORS[index % WHEEL_COLORS.length];
 
-      const textR = r * 0.62;
+      const key = item.toLowerCase().trim();
+      const animeImg = imageMap[key]?.image;
+
+      // Image position - place in middle of slice
+      const imgR = r * 0.55;
+      const imgX = cx + imgR * Math.cos(midRad);
+      const imgY = cy + imgR * Math.sin(midRad);
+      const imgSize = Math.max(20, Math.min(40, angle * 0.8));
+
+      const textR = animeImg ? r * 0.8 : r * 0.62;
       const textX = cx + textR * Math.cos(midRad);
       const textY = cy + textR * Math.sin(midRad);
       const maxLen = Math.max(5, Math.floor(angle / 8));
       const label = item.length > maxLen ? item.substring(0, maxLen - 1) + '…' : item;
-      const fs = Math.max(8, Math.min(16, 300 / total));
+      const fs = Math.max(7, Math.min(14, 280 / total));
+      const clipId = `slice-clip-${index}`;
 
       return (
         <g key={index}>
           <path d={path} fill={color} stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
+          
+          {/* Anime image inside slice */}
+          {animeImg && (
+            <>
+              <defs>
+                <clipPath id={clipId}>
+                  <circle cx={imgX} cy={imgY} r={imgSize / 2} />
+                </clipPath>
+              </defs>
+              <image
+                href={animeImg}
+                x={imgX - imgSize / 2}
+                y={imgY - imgSize / 2}
+                width={imgSize}
+                height={imgSize}
+                clipPath={`url(#${clipId})`}
+                style={{ pointerEvents: 'none' }}
+              />
+              <circle cx={imgX} cy={imgY} r={imgSize / 2} fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+            </>
+          )}
+          
           <text
             x={textX} y={textY} fill="white" fontSize={fs} fontWeight="700"
             textAnchor="middle" dominantBaseline="middle"
@@ -82,7 +115,7 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStar
         </g>
       );
     });
-  }, [items]);
+  }, [items, imageMap]);
 
   const size = 'min(70vw, 480px)';
 

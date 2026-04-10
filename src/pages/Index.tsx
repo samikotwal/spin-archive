@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download } from 'lucide-react';
@@ -33,6 +33,11 @@ const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [eliminationMode, setEliminationMode] = useState(false);
+  const [animeImages, setAnimeImages] = useState<Record<string, { image: string | null; title: string | null }>>({});
+
+  const handleImagesChange = useCallback((images: Record<string, { image: string | null; title: string | null }>) => {
+    setAnimeImages(images);
+  }, []);
 
   // Legacy wheel data (for non-logged-in users)
   const {
@@ -235,7 +240,7 @@ const Index = () => {
   const PanelContent = () => (
     <div className="flex-1 min-h-0 overflow-hidden">
       {activeTab === 'entries' ? (
-        <WheelInput items={currentItems} onUpdateItems={handleUpdateItems} onClearAll={handleClearAll} />
+        <WheelInput items={currentItems} onUpdateItems={handleUpdateItems} onClearAll={handleClearAll} onImagesChange={handleImagesChange} />
       ) : activeTab === 'results' ? (
         <ResultsList />
       ) : (
@@ -317,7 +322,7 @@ const Index = () => {
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...spring, delay: 0.1 }}
           className="flex-1 flex items-center justify-center min-h-0 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5" />
-          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} />
+          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} imageMap={animeImages} />
         </motion.div>
 
         <motion.div initial={{ y: 100 }} animate={{ y: 0 }} transition={spring}
@@ -389,7 +394,7 @@ const Index = () => {
           <div className="absolute inset-0" style={{
             backgroundImage: 'radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.03) 0%, transparent 70%)',
           }} />
-          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} />
+          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} imageMap={animeImages} />
         </motion.div>
 
         {/* Panel toggle */}

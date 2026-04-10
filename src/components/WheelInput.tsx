@@ -2,49 +2,17 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw, GripVertical, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { fetchAnimeImage, type AnimeInfo } from '@/lib/animeImageCache';
 
 interface WheelInputProps {
   items: string[];
   onUpdateItems: (items: string[]) => void;
   onRemoveItem?: (index: number) => void;
   onClearAll: () => void;
+  onImagesChange?: (images: Record<string, AnimeInfo>) => void;
 }
 
-interface AnimeInfo { image: string | null; title: string | null; }
-
-// Cache for anime images so we don't re-fetch
-const imageCache: Record<string, AnimeInfo> = {};
-
-const fetchAnimeImage = async (name: string): Promise<{ image: string | null; title: string | null }> => {
-  const key = name.toLowerCase().trim();
-  if (key in imageCache) return imageCache[key];
-  try {
-    const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(name)}&limit=3&sfw=true`);
-    if (!res.ok) { imageCache[key] = { image: null, title: null }; return { image: null, title: null }; }
-    const json = await res.json();
-    const results = json?.data || [];
-    // Find best match - check if any result title closely matches input
-    const match = results.find((r: any) => {
-      const t = (r.title || '').toLowerCase();
-      const tEn = (r.title_english || '').toLowerCase();
-      return t.includes(key) || key.includes(t.split(' ')[0]) || tEn.includes(key) || key.includes(tEn.split(' ')[0]);
-    }) || results[0]; // fallback to first result if input is close enough
-    
-    if (match && results.length > 0) {
-      const img = match.images?.jpg?.small_image_url || match.images?.jpg?.image_url || null;
-      const result = { image: img, title: match.title_english || match.title || null };
-      imageCache[key] = result;
-      return result;
-    }
-    imageCache[key] = { image: null, title: null };
-    return { image: null, title: null };
-  } catch {
-    imageCache[key] = { image: null, title: null };
-    return { image: null, title: null };
-  }
-};
-
-const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
+const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelInputProps) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [newValue, setNewValue] = useState('');
@@ -68,6 +36,11 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
       });
     });
   }, [items]);
+
+  // Notify parent of image changes
+  useEffect(() => {
+    onImagesChange?.(images);
+  }, [images, onImagesChange]);
 
   const handleAdd = () => {
     if (!newValue.trim()) return;
