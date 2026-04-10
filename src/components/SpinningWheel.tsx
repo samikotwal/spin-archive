@@ -150,22 +150,22 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStar
         )}
       </motion.svg>
 
-      {/* Right pointer */}
-      <div className="absolute right-[-14px] top-1/2 -translate-y-1/2 z-20">
-        <motion.svg width="30" height="40" viewBox="0 0 30 40"
-          animate={isSpinning ? { x: [-2, 0, -2] } : {}}
+      {/* Top pointer - pointing down toward wheel */}
+      <div className="absolute top-[-18px] left-1/2 -translate-x-1/2 z-20">
+        <motion.svg width="36" height="36" viewBox="0 0 36 36"
+          animate={isSpinning ? { y: [-2, 2, -2] } : {}}
           transition={{ duration: 0.15, repeat: isSpinning ? Infinity : 0 }}
         >
           <defs>
-            <linearGradient id="ptrGrad" x1="0" y1="0" x2="1" y2="1">
+            <linearGradient id="ptrGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#FBBC04" />
               <stop offset="100%" stopColor="#F57C00" />
             </linearGradient>
             <filter id="ptrShadow">
-              <feDropShadow dx="-2" dy="1" stdDeviation="2" floodOpacity="0.3" />
+              <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.3" />
             </filter>
           </defs>
-          <polygon points="0,0 30,20 0,40" fill="url(#ptrGrad)" filter="url(#ptrShadow)" />
+          <polygon points="18,36 0,0 36,0" fill="url(#ptrGrad)" filter="url(#ptrShadow)" />
         </motion.svg>
       </div>
     </div>
