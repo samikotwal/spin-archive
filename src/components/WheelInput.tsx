@@ -12,7 +12,7 @@ interface WheelInputProps {
   onImagesChange?: (images: Record<string, AnimeInfo>) => void;
 }
 
-const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
+const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelInputProps) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [newValue, setNewValue] = useState('');
