@@ -33,6 +33,11 @@ const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [eliminationMode, setEliminationMode] = useState(false);
+  const [animeImages, setAnimeImages] = useState<Record<string, { image: string | null; title: string | null }>>({});
+
+  const handleImagesChange = useCallback((images: Record<string, { image: string | null; title: string | null }>) => {
+    setAnimeImages(images);
+  }, []);
 
   // Legacy wheel data (for non-logged-in users)
   const {
