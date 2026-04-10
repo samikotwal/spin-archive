@@ -37,6 +37,11 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
     });
   }, [items]);
 
+  // Notify parent of image changes
+  useEffect(() => {
+    onImagesChange?.(images);
+  }, [images, onImagesChange]);
+
   const handleAdd = () => {
     if (!newValue.trim()) return;
     const parsed = newValue
