@@ -114,7 +114,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
     if (e.key === 'Escape') { setEditingIndex(null); setEditValue(''); }
   };
 
-  const getImage = (item: string) => images[item.toLowerCase().trim()] || null;
+  const getAnimeInfo = (item: string): AnimeInfo | null => images[item.toLowerCase().trim()] || null;
   const isLoading = (item: string) => loadingImages.has(item.toLowerCase().trim());
 
   return (
