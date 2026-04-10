@@ -7,6 +7,7 @@ interface SpinningWheelProps {
   isSpinning: boolean;
   setIsSpinning: (spinning: boolean) => void;
   onSpinStart?: () => void;
+  imageMap?: Record<string, { image: string | null; title: string | null }>;
 }
 
 const WHEEL_COLORS = [
@@ -15,7 +16,7 @@ const WHEEL_COLORS = [
   '#8BC34A', '#9C27B0', '#00BCD4', '#FF5722',
 ];
 
-const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStart }: SpinningWheelProps) => {
+const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStart, imageMap = {} }: SpinningWheelProps) => {
   const [rotation, setRotation] = useState(0);
 
   const spinWheel = useCallback(() => {
