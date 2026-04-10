@@ -322,7 +322,7 @@ const Index = () => {
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...spring, delay: 0.1 }}
           className="flex-1 flex items-center justify-center min-h-0 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5" />
-          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} />
+          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} imageMap={animeImages} />
         </motion.div>
 
         <motion.div initial={{ y: 100 }} animate={{ y: 0 }} transition={spring}
@@ -394,7 +394,7 @@ const Index = () => {
           <div className="absolute inset-0" style={{
             backgroundImage: 'radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.03) 0%, transparent 70%)',
           }} />
-          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} />
+          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} imageMap={animeImages} />
         </motion.div>
 
         {/* Panel toggle */}
