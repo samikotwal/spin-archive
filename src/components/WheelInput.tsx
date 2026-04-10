@@ -10,28 +10,37 @@ interface WheelInputProps {
   onClearAll: () => void;
 }
 
-// Cache for anime images so we don't re-fetch
-const imageCache: Record<string, string | null> = {};
+interface AnimeInfo { image: string | null; title: string | null; }
 
-const fetchAnimeImage = async (name: string): Promise<string | null> => {
+// Cache for anime images so we don't re-fetch
+const imageCache: Record<string, AnimeInfo> = {};
+
+const fetchAnimeImage = async (name: string): Promise<{ image: string | null; title: string | null }> => {
   const key = name.toLowerCase().trim();
   if (key in imageCache) return imageCache[key];
   try {
-    const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(name)}&limit=1&sfw=true`);
-    if (!res.ok) { imageCache[key] = null; return null; }
+    const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(name)}&limit=3&sfw=true`);
+    if (!res.ok) { imageCache[key] = { image: null, title: null }; return { image: null, title: null }; }
     const json = await res.json();
-    const img = json?.data?.[0]?.images?.jpg?.small_image_url || null;
-    // Only cache if the title is a close match
-    const title = json?.data?.[0]?.title?.toLowerCase() || '';
-    if (title.includes(key) || key.includes(title.split(' ')[0])) {
-      imageCache[key] = img;
-      return img;
+    const results = json?.data || [];
+    // Find best match - check if any result title closely matches input
+    const match = results.find((r: any) => {
+      const t = (r.title || '').toLowerCase();
+      const tEn = (r.title_english || '').toLowerCase();
+      return t.includes(key) || key.includes(t.split(' ')[0]) || tEn.includes(key) || key.includes(tEn.split(' ')[0]);
+    }) || results[0]; // fallback to first result if input is close enough
+    
+    if (match && results.length > 0) {
+      const img = match.images?.jpg?.small_image_url || match.images?.jpg?.image_url || null;
+      const result = { image: img, title: match.title_english || match.title || null };
+      imageCache[key] = result;
+      return result;
     }
-    imageCache[key] = null;
-    return null;
+    imageCache[key] = { image: null, title: null };
+    return { image: null, title: null };
   } catch {
-    imageCache[key] = null;
-    return null;
+    imageCache[key] = { image: null, title: null };
+    return { image: null, title: null };
   }
 };
 
@@ -39,7 +48,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [newValue, setNewValue] = useState('');
-  const [images, setImages] = useState<Record<string, string | null>>({});
+  const [images, setImages] = useState<Record<string, AnimeInfo>>({});
   const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -49,8 +58,8 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
       const key = item.toLowerCase().trim();
       if (key in images || loadingImages.has(key) || key.length < 2) return;
       setLoadingImages(prev => new Set(prev).add(key));
-      fetchAnimeImage(item).then(img => {
-        setImages(prev => ({ ...prev, [key]: img }));
+      fetchAnimeImage(item).then(info => {
+        setImages(prev => ({ ...prev, [key]: info }));
         setLoadingImages(prev => {
           const next = new Set(prev);
           next.delete(key);
@@ -105,7 +114,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
     if (e.key === 'Escape') { setEditingIndex(null); setEditValue(''); }
   };
 
-  const getImage = (item: string) => images[item.toLowerCase().trim()] || null;
+  const getAnimeInfo = (item: string): AnimeInfo | null => images[item.toLowerCase().trim()] || null;
   const isLoading = (item: string) => loadingImages.has(item.toLowerCase().trim());
 
   return (
@@ -145,7 +154,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
         ) : (
           <div className="divide-y divide-border/5">
             {items.map((item, i) => {
-              const img = getImage(item);
+              const info = getAnimeInfo(item);
               const loading = isLoading(item);
               return (
                 <motion.div
@@ -153,19 +162,21 @@ const WheelInput = ({ items, onUpdateItems, onClearAll }: WheelInputProps) => {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.02 }}
-                  className="group flex items-center gap-2 px-2 py-1 hover:bg-muted/20 transition-colors"
+                  className="group flex items-center gap-2 px-2 py-1.5 hover:bg-muted/20 transition-colors"
                 >
                   {/* Number */}
                   <span className="w-6 text-right text-[10px] text-muted-foreground/30 font-mono shrink-0 select-none">
                     {i + 1}.
                   </span>
 
-                  {/* Image or loading */}
-                  <div className="w-8 h-8 rounded shrink-0 overflow-hidden bg-muted/20 flex items-center justify-center">
+                  {/* Image or letter fallback */}
+                  <div className={`shrink-0 overflow-hidden flex items-center justify-center ${
+                    info?.image ? 'w-10 h-10 rounded-lg' : 'w-8 h-8 rounded'
+                  } bg-muted/20`}>
                     {loading ? (
                       <Loader2 className="w-3 h-3 text-muted-foreground/30 animate-spin" />
-                    ) : img ? (
-                      <img src={img} alt={item} className="w-full h-full object-cover" />
+                    ) : info?.image ? (
+                      <img src={info.image} alt={item} className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-[10px] text-muted-foreground/20 font-bold">
                         {item.charAt(0).toUpperCase()}
