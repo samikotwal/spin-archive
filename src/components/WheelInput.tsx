@@ -21,10 +21,26 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
   const inputRef = useRef<HTMLInputElement>(null);
   const fetchedRef = useRef<Set<string>>(new Set());
   const onImagesChangeRef = useRef(onImagesChange);
+  const lastNotifiedRef = useRef('');
   onImagesChangeRef.current = onImagesChange;
 
-  // Stable serialized items key to prevent re-runs on same content
   const itemsKey = items.join('\n');
+
+  // Notify parent only when image data actually changes
+  useEffect(() => {
+    const cache = getImageCache();
+    const relevant: Record<string, AnimeInfo> = {};
+    for (const item of items) {
+      const key = item.toLowerCase().trim();
+      if (cache[key]) relevant[key] = cache[key];
+    }
+    const sig = JSON.stringify(relevant);
+    if (sig !== lastNotifiedRef.current) {
+      lastNotifiedRef.current = sig;
+      onImagesChangeRef.current?.(relevant);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemsKey, imageVersion]);
 
   // Fetch anime images for items not yet fetched
   useEffect(() => {
@@ -38,16 +54,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
       fetchedRef.current.add(key);
     }
 
-    if (toFetch.length === 0) {
-      // Still notify parent with current cache
-      const relevant: Record<string, AnimeInfo> = {};
-      for (const item of items) {
-        const key = item.toLowerCase().trim();
-        if (cache[key]) relevant[key] = cache[key];
-      }
-      onImagesChangeRef.current?.(relevant);
-      return;
-    }
+    if (toFetch.length === 0) return;
 
     setLoadingKeys(prev => {
       const next = new Set(prev);
@@ -69,16 +76,6 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
           return next;
         });
         setImageVersion(v => v + 1);
-      }
-      // Notify parent with all fetched images
-      if (!cancelled) {
-        const updatedCache = getImageCache();
-        const relevant: Record<string, AnimeInfo> = {};
-        for (const item of items) {
-          const key = item.toLowerCase().trim();
-          if (updatedCache[key]) relevant[key] = updatedCache[key];
-        }
-        onImagesChangeRef.current?.(relevant);
       }
     })();
 
