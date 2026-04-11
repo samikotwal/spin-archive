@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download } from 'lucide-react';
@@ -244,7 +244,7 @@ const Index = () => {
   const PanelContent = () => (
     <div className="flex-1 min-h-0 overflow-hidden">
       {activeTab === 'entries' ? (
-        <WheelInput items={currentItems} onUpdateItems={handleUpdateItems} onClearAll={handleClearAll} onImagesChange={(imgs) => setAnimeImages(prev => { const sig = JSON.stringify(imgs); const prevSig = JSON.stringify(prev); return sig === prevSig ? prev : imgs; })} />
+        <WheelInput items={currentItems} onUpdateItems={handleUpdateItems} onClearAll={handleClearAll} onImagesChange={handleImagesChange} />
       ) : activeTab === 'results' ? (
         <ResultsList />
       ) : (
