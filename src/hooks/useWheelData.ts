@@ -235,7 +235,7 @@ export const useWheelData = () => {
   })), [wheelItems]);
 
   return {
-    wheelItems: wheelItems.map(item => item.value),
+    wheelItems: wheelItemValues,
     wheelItemsFull: wheelItems,
     displayItems,
     lists,
