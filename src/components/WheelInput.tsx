@@ -23,6 +23,9 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
   const onImagesChangeRef = useRef(onImagesChange);
   onImagesChangeRef.current = onImagesChange;
 
+  // Stable serialized items key to prevent re-runs on same content
+  const itemsKey = items.join('\n');
+
   // Fetch anime images for items not yet fetched
   useEffect(() => {
     const cache = getImageCache();
@@ -35,7 +38,16 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
       fetchedRef.current.add(key);
     }
 
-    if (toFetch.length === 0) return;
+    if (toFetch.length === 0) {
+      // Still notify parent with current cache
+      const relevant: Record<string, AnimeInfo> = {};
+      for (const item of items) {
+        const key = item.toLowerCase().trim();
+        if (cache[key]) relevant[key] = cache[key];
+      }
+      onImagesChangeRef.current?.(relevant);
+      return;
+    }
 
     setLoadingKeys(prev => {
       const next = new Set(prev);
@@ -58,21 +70,21 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
         });
         setImageVersion(v => v + 1);
       }
+      // Notify parent with all fetched images
+      if (!cancelled) {
+        const updatedCache = getImageCache();
+        const relevant: Record<string, AnimeInfo> = {};
+        for (const item of items) {
+          const key = item.toLowerCase().trim();
+          if (updatedCache[key]) relevant[key] = updatedCache[key];
+        }
+        onImagesChangeRef.current?.(relevant);
+      }
     })();
 
     return () => { cancelled = true; };
-  }, [items]);
-
-  // Notify parent when images change
-  useEffect(() => {
-    const cache = getImageCache();
-    const relevant: Record<string, AnimeInfo> = {};
-    for (const item of items) {
-      const key = item.toLowerCase().trim();
-      if (cache[key]) relevant[key] = cache[key];
-    }
-    onImagesChangeRef.current?.(relevant);
-  }, [items, imageVersion]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemsKey]);
 
   const handleAdd = () => {
     if (!newValue.trim()) return;
