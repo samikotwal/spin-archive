@@ -34,6 +34,14 @@ const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [eliminationMode, setEliminationMode] = useState(false);
   const [animeImages, setAnimeImages] = useState<Record<string, { image: string | null; title: string | null }>>({});
+  const animeImagesRef = useRef('');
+  const handleImagesChange = useCallback((images: Record<string, { image: string | null; title: string | null }>) => {
+    const sig = JSON.stringify(images);
+    if (sig !== animeImagesRef.current) {
+      animeImagesRef.current = sig;
+      setAnimeImages(images);
+    }
+  }, []);
 
   // Legacy wheel data (for non-logged-in users)
   const {
