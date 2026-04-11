@@ -17,63 +17,62 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
   const [editValue, setEditValue] = useState('');
   const [newValue, setNewValue] = useState('');
   const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
-  const [, forceUpdate] = useState(0);
+  const [imageVersion, setImageVersion] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const fetchedRef = useRef<Set<string>>(new Set());
+  const onImagesChangeRef = useRef(onImagesChange);
+  onImagesChangeRef.current = onImagesChange;
 
-  // Fetch anime images for all items, using the global cache
-  const fetchImagesForItems = useCallback(async () => {
+  // Fetch anime images for items not yet fetched
+  useEffect(() => {
     const cache = getImageCache();
     const toFetch: string[] = [];
 
     for (const item of items) {
       const key = item.toLowerCase().trim();
-      if (key.length < 2) continue;
-      if (key in cache) continue;
-      if (fetchedRef.current.has(key)) continue;
+      if (key.length < 2 || key in cache || fetchedRef.current.has(key)) continue;
       toFetch.push(item);
       fetchedRef.current.add(key);
     }
 
-    if (toFetch.length === 0) {
-      // Still notify parent with current cache state
-      const relevant: Record<string, AnimeInfo> = {};
-      for (const item of items) {
-        const key = item.toLowerCase().trim();
-        if (cache[key]) relevant[key] = cache[key];
+    if (toFetch.length === 0) return;
+
+    setLoadingKeys(prev => {
+      const next = new Set(prev);
+      toFetch.forEach(t => next.add(t.toLowerCase().trim()));
+      return next;
+    });
+
+    let cancelled = false;
+
+    (async () => {
+      for (let i = 0; i < toFetch.length; i++) {
+        if (cancelled) return;
+        if (i > 0) await new Promise(r => setTimeout(r, 500));
+        await fetchAnimeImage(toFetch[i]);
+        if (cancelled) return;
+        setLoadingKeys(prev => {
+          const next = new Set(prev);
+          next.delete(toFetch[i].toLowerCase().trim());
+          return next;
+        });
+        setImageVersion(v => v + 1);
       }
-      onImagesChange?.(relevant);
-      return;
-    }
+    })();
 
-    setLoadingKeys(new Set(toFetch.map(t => t.toLowerCase().trim())));
+    return () => { cancelled = true; };
+  }, [items]);
 
-    // Fetch with delay between requests to avoid rate limiting
-    for (let i = 0; i < toFetch.length; i++) {
-      if (i > 0) await new Promise(r => setTimeout(r, 400));
-      await fetchAnimeImage(toFetch[i]);
-      // Update loading state progressively
-      setLoadingKeys(prev => {
-        const next = new Set(prev);
-        next.delete(toFetch[i].toLowerCase().trim());
-        return next;
-      });
-      forceUpdate(n => n + 1);
-    }
-
-    // Notify parent with all fetched images
-    const updatedCache = getImageCache();
+  // Notify parent when images change
+  useEffect(() => {
+    const cache = getImageCache();
     const relevant: Record<string, AnimeInfo> = {};
     for (const item of items) {
       const key = item.toLowerCase().trim();
-      if (updatedCache[key]) relevant[key] = updatedCache[key];
+      if (cache[key]) relevant[key] = cache[key];
     }
-    onImagesChange?.(relevant);
-  }, [items, onImagesChange]);
-
-  useEffect(() => {
-    fetchImagesForItems();
-  }, [fetchImagesForItems]);
+    onImagesChangeRef.current?.(relevant);
+  }, [items, imageVersion]);
 
   const handleAdd = () => {
     if (!newValue.trim()) return;
@@ -122,7 +121,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
 
   const cache = getImageCache();
   const getAnimeInfo = (item: string): AnimeInfo | null => cache[item.toLowerCase().trim()] || null;
-  const isLoading = (item: string) => loadingKeys.has(item.toLowerCase().trim());
+  const isItemLoading = (item: string) => loadingKeys.has(item.toLowerCase().trim());
 
   return (
     <div className="flex flex-col h-full">
@@ -162,7 +161,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
           <div className="divide-y divide-border/5">
             {items.map((item, i) => {
               const info = getAnimeInfo(item);
-              const loading = isLoading(item);
+              const loading = isItemLoading(item);
               return (
                 <motion.div
                   key={`${i}-${item}`}
@@ -171,13 +170,11 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
                   transition={{ delay: i * 0.02 }}
                   className="group flex items-center gap-2 px-2 py-1.5 hover:bg-muted/20 transition-colors"
                 >
-                  {/* Number */}
                   <span className="w-6 text-right text-[10px] text-muted-foreground/30 font-mono shrink-0 select-none">
                     {i + 1}.
                   </span>
 
-                  {/* Image or letter fallback */}
-                  <div className={`shrink-0 overflow-hidden flex items-center justify-center w-10 h-10 rounded-lg bg-muted/20`}>
+                  <div className="shrink-0 overflow-hidden flex items-center justify-center w-10 h-10 rounded-lg bg-muted/20">
                     {loading ? (
                       <Loader2 className="w-3 h-3 text-muted-foreground/30 animate-spin" />
                     ) : info?.image ? (
@@ -189,7 +186,6 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
                     )}
                   </div>
 
-                  {/* Name + title */}
                   <div className="flex-1 min-w-0">
                     {editingIndex === i ? (
                       <input
@@ -210,7 +206,6 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
                     )}
                   </div>
 
-                  {/* Remove */}
                   <motion.button
                     whileTap={{ scale: 0.85 }}
                     onClick={() => handleRemove(i)}
@@ -225,7 +220,6 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
         )}
       </div>
 
-      {/* Clear all */}
       {items.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 5 }}
