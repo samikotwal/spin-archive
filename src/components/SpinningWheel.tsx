@@ -11,9 +11,9 @@ interface SpinningWheelProps {
 }
 
 const WHEEL_COLORS = [
-  '#4285F4', '#EA4335', '#FBBC04', '#34A853', '#FF6D01',
-  '#46BDC6', '#7B1FA2', '#E91E63', '#00ACC1', '#FF7043',
-  '#8BC34A', '#9C27B0', '#00BCD4', '#FF5722',
+  '#6366f1', '#f43f5e', '#f59e0b', '#10b981', '#3b82f6',
+  '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4',
+  '#84cc16', '#a855f7', '#0ea5e9', '#ef4444',
 ];
 
 const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStart, imageMap = {} }: SpinningWheelProps) => {
@@ -31,13 +31,12 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStar
     setTimeout(() => {
       const norm = total % 360;
       const sliceAngle = 360 / items.length;
-      // Pointer is at top (270deg / -90deg), so adjust accordingly
       const adjusted = (360 - norm + 270) % 360;
       const idx = Math.floor(adjusted / sliceAngle) % items.length;
       setIsSpinning(false);
       onSpinEnd(items[idx], idx);
     }, 4500);
-  }, [isSpinning, items, rotation, onSpinEnd, setIsSpinning]);
+  }, [isSpinning, items, rotation, onSpinEnd, setIsSpinning, onSpinStart]);
 
   const slices = useMemo(() => {
     if (items.length === 0) return null;
@@ -64,25 +63,31 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStar
 
       const key = item.toLowerCase().trim();
       const animeImg = imageMap[key]?.image;
+      const animeTitle = imageMap[key]?.title;
 
       // Image position - place in middle of slice
       const imgR = r * 0.55;
       const imgX = cx + imgR * Math.cos(midRad);
       const imgY = cy + imgR * Math.sin(midRad);
-      const imgSize = Math.max(20, Math.min(40, angle * 0.8));
+      const imgSize = Math.max(22, Math.min(44, angle * 0.9));
 
-      const textR = animeImg ? r * 0.8 : r * 0.62;
+      // Text position
+      const textR = animeImg ? r * 0.82 : r * 0.62;
       const textX = cx + textR * Math.cos(midRad);
       const textY = cy + textR * Math.sin(midRad);
-      const maxLen = Math.max(5, Math.floor(angle / 8));
-      const label = item.length > maxLen ? item.substring(0, maxLen - 1) + '…' : item;
-      const fs = Math.max(7, Math.min(14, 280 / total));
+      const maxLen = Math.max(4, Math.floor(angle / 7));
+      const displayName = animeTitle || item;
+      const label = displayName.length > maxLen ? displayName.substring(0, maxLen - 1) + '…' : displayName;
+      const fs = Math.max(7, Math.min(13, 260 / total));
       const clipId = `slice-clip-${index}`;
 
       return (
         <g key={index}>
-          <path d={path} fill={color} stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
-          
+          {/* Slice */}
+          <path d={path} fill={color} stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
+          {/* Slight inner highlight */}
+          <path d={path} fill="url(#sliceShine)" opacity="0.15" />
+
           {/* Anime image inside slice */}
           {animeImg && (
             <>
@@ -99,16 +104,18 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStar
                 height={imgSize}
                 clipPath={`url(#${clipId})`}
                 style={{ pointerEvents: 'none' }}
+                preserveAspectRatio="xMidYMid slice"
               />
-              <circle cx={imgX} cy={imgY} r={imgSize / 2} fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+              <circle cx={imgX} cy={imgY} r={imgSize / 2} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" />
             </>
           )}
-          
+
+          {/* Text label */}
           <text
             x={textX} y={textY} fill="white" fontSize={fs} fontWeight="700"
             textAnchor="middle" dominantBaseline="middle"
             transform={`rotate(${mid}, ${textX}, ${textY})`}
-            style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)', fontFamily: "'Inter', system-ui" }}
+            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)', fontFamily: "'Inter', system-ui" }}
           >
             {label}
           </text>
@@ -122,25 +129,34 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStar
   return (
     <div className="relative flex items-center justify-center select-none" style={{ width: size, height: size }}>
       {/* Outer glow ring */}
-      <div className="absolute inset-[-12px] rounded-full opacity-40" style={{
+      <div className="absolute inset-[-14px] rounded-full" style={{
         background: isSpinning
           ? 'conic-gradient(from 0deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary)))'
-          : 'none',
-        filter: 'blur(16px)',
-        transition: 'opacity 0.5s',
+          : 'conic-gradient(from 0deg, hsl(var(--primary) / 0.2), hsl(var(--accent) / 0.2), hsl(var(--primary) / 0.2))',
+        filter: isSpinning ? 'blur(18px)' : 'blur(12px)',
+        opacity: isSpinning ? 0.5 : 0.25,
+        transition: 'opacity 0.5s, filter 0.5s',
       }} />
 
-      {/* Outer ring */}
-      <div className="absolute inset-[-4px] rounded-full border-2 border-border/20" />
+      {/* Outer ring border */}
+      <div className="absolute inset-[-5px] rounded-full border-2 border-border/30" />
 
       <motion.svg
         viewBox="0 0 400 400"
         className="w-full h-full cursor-pointer"
-        style={{ filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.3))' }}
+        style={{ filter: 'drop-shadow(0 8px 30px rgba(0,0,0,0.4))' }}
         animate={{ rotate: rotation }}
         transition={{ duration: 4.5, ease: [0.12, 0.8, 0.05, 1] }}
         onClick={spinWheel}
       >
+        <defs>
+          {/* Shine gradient for slices */}
+          <radialGradient id="sliceShine" cx="50%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="white" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="white" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
         {/* Background circle */}
         <circle cx="200" cy="200" r="195" fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth="1" strokeOpacity="0.2" />
 
@@ -159,47 +175,49 @@ const SpinningWheel = ({ items, onSpinEnd, isSpinning, setIsSpinning, onSpinStar
         {/* Tick marks around the edge */}
         {items.length > 0 && items.map((_, i) => {
           const a = (i * 360 / items.length) * Math.PI / 180;
-          const x1 = 200 + 186 * Math.cos(a);
-          const y1 = 200 + 186 * Math.sin(a);
-          const x2 = 200 + 195 * Math.cos(a);
-          const y2 = 200 + 195 * Math.sin(a);
-          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="white" strokeWidth="1.5" strokeOpacity="0.4" />;
+          const tx1 = 200 + 186 * Math.cos(a);
+          const ty1 = 200 + 186 * Math.sin(a);
+          const tx2 = 200 + 195 * Math.cos(a);
+          const ty2 = 200 + 195 * Math.sin(a);
+          return <line key={i} x1={tx1} y1={ty1} x2={tx2} y2={ty2} stroke="white" strokeWidth="1.5" strokeOpacity="0.5" />;
         })}
 
         {/* Center hub */}
-        <circle cx="200" cy="200" r="32" fill="hsl(var(--card))" />
-        <circle cx="200" cy="200" r="32" fill="none" stroke="hsl(var(--border))" strokeWidth="1" strokeOpacity="0.3" />
+        <circle cx="200" cy="200" r="34" fill="hsl(var(--card))" />
+        <circle cx="200" cy="200" r="34" fill="none" stroke="hsl(var(--border))" strokeWidth="1.5" strokeOpacity="0.3" />
+        <circle cx="200" cy="200" r="30" fill="none" stroke="hsl(var(--primary))" strokeWidth="0.5" strokeOpacity="0.2" />
 
         {!isSpinning && items.length > 0 && (
           <>
-            <text x="200" y="195" fill="hsl(var(--foreground))" fontSize="8" fontWeight="700" textAnchor="middle" dominantBaseline="middle" opacity="0.5"
-              style={{ fontFamily: "'Inter', system-ui", textTransform: 'uppercase', letterSpacing: '1px' }}>TAP TO</text>
-            <text x="200" y="208" fill="hsl(var(--primary))" fontSize="12" fontWeight="900" textAnchor="middle" dominantBaseline="middle"
+            <text x="200" y="193" fill="hsl(var(--foreground))" fontSize="7" fontWeight="700" textAnchor="middle" dominantBaseline="middle" opacity="0.4"
+              style={{ fontFamily: "'Inter', system-ui", textTransform: 'uppercase', letterSpacing: '1.5px' }}>TAP TO</text>
+            <text x="200" y="208" fill="hsl(var(--primary))" fontSize="13" fontWeight="900" textAnchor="middle" dominantBaseline="middle"
               style={{ fontFamily: "'Inter', system-ui" }}>SPIN</text>
           </>
         )}
         {isSpinning && (
-          <motion.circle cx="200" cy="200" r="4" fill="hsl(var(--primary))"
-            animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 0.6, repeat: Infinity }} />
+          <motion.circle cx="200" cy="200" r="5" fill="hsl(var(--primary))"
+            animate={{ opacity: [1, 0.2, 1], scale: [1, 0.8, 1] }} transition={{ duration: 0.5, repeat: Infinity }} />
         )}
       </motion.svg>
 
       {/* Top pointer - pointing down toward wheel */}
-      <div className="absolute top-[-18px] left-1/2 -translate-x-1/2 z-20">
-        <motion.svg width="36" height="36" viewBox="0 0 36 36"
-          animate={isSpinning ? { y: [-2, 2, -2] } : {}}
-          transition={{ duration: 0.15, repeat: isSpinning ? Infinity : 0 }}
+      <div className="absolute top-[-20px] left-1/2 -translate-x-1/2 z-20">
+        <motion.svg width="40" height="40" viewBox="0 0 40 40"
+          animate={isSpinning ? { y: [-2, 3, -2] } : {}}
+          transition={{ duration: 0.12, repeat: isSpinning ? Infinity : 0 }}
         >
           <defs>
             <linearGradient id="ptrGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#FBBC04" />
-              <stop offset="100%" stopColor="#F57C00" />
+              <stop offset="100%" stopColor="#E65100" />
             </linearGradient>
             <filter id="ptrShadow">
-              <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.3" />
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.4" />
             </filter>
           </defs>
-          <polygon points="18,36 0,0 36,0" fill="url(#ptrGrad)" filter="url(#ptrShadow)" />
+          <polygon points="20,40 2,4 38,4" fill="url(#ptrGrad)" filter="url(#ptrShadow)" />
+          <polygon points="20,36 6,8 34,8" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
         </motion.svg>
       </div>
     </div>

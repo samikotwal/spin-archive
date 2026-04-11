@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, GripVertical, X, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { RotateCcw, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { fetchAnimeImage, type AnimeInfo } from '@/lib/animeImageCache';
+import { fetchAnimeImage, getImageCache, type AnimeInfo } from '@/lib/animeImageCache';
 
 interface WheelInputProps {
   items: string[];
@@ -16,31 +16,64 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [newValue, setNewValue] = useState('');
-  const [images, setImages] = useState<Record<string, AnimeInfo>>({});
-  const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
+  const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
+  const [, forceUpdate] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fetchedRef = useRef<Set<string>>(new Set());
 
-  // Fetch images for items we haven't fetched yet
-  useEffect(() => {
-    items.forEach(item => {
+  // Fetch anime images for all items, using the global cache
+  const fetchImagesForItems = useCallback(async () => {
+    const cache = getImageCache();
+    const toFetch: string[] = [];
+
+    for (const item of items) {
       const key = item.toLowerCase().trim();
-      if (key in images || loadingImages.has(key) || key.length < 2) return;
-      setLoadingImages(prev => new Set(prev).add(key));
-      fetchAnimeImage(item).then(info => {
-        setImages(prev => ({ ...prev, [key]: info }));
-        setLoadingImages(prev => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
-      });
-    });
-  }, [items]);
+      if (key.length < 2) continue;
+      if (key in cache) continue;
+      if (fetchedRef.current.has(key)) continue;
+      toFetch.push(item);
+      fetchedRef.current.add(key);
+    }
 
-  // Notify parent of image changes
+    if (toFetch.length === 0) {
+      // Still notify parent with current cache state
+      const relevant: Record<string, AnimeInfo> = {};
+      for (const item of items) {
+        const key = item.toLowerCase().trim();
+        if (cache[key]) relevant[key] = cache[key];
+      }
+      onImagesChange?.(relevant);
+      return;
+    }
+
+    setLoadingKeys(new Set(toFetch.map(t => t.toLowerCase().trim())));
+
+    // Fetch with delay between requests to avoid rate limiting
+    for (let i = 0; i < toFetch.length; i++) {
+      if (i > 0) await new Promise(r => setTimeout(r, 400));
+      await fetchAnimeImage(toFetch[i]);
+      // Update loading state progressively
+      setLoadingKeys(prev => {
+        const next = new Set(prev);
+        next.delete(toFetch[i].toLowerCase().trim());
+        return next;
+      });
+      forceUpdate(n => n + 1);
+    }
+
+    // Notify parent with all fetched images
+    const updatedCache = getImageCache();
+    const relevant: Record<string, AnimeInfo> = {};
+    for (const item of items) {
+      const key = item.toLowerCase().trim();
+      if (updatedCache[key]) relevant[key] = updatedCache[key];
+    }
+    onImagesChange?.(relevant);
+  }, [items, onImagesChange]);
+
   useEffect(() => {
-    onImagesChange?.(images);
-  }, [images, onImagesChange]);
+    fetchImagesForItems();
+  }, [fetchImagesForItems]);
 
   const handleAdd = () => {
     if (!newValue.trim()) return;
@@ -87,8 +120,9 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
     if (e.key === 'Escape') { setEditingIndex(null); setEditValue(''); }
   };
 
-  const getAnimeInfo = (item: string): AnimeInfo | null => images[item.toLowerCase().trim()] || null;
-  const isLoading = (item: string) => loadingImages.has(item.toLowerCase().trim());
+  const cache = getImageCache();
+  const getAnimeInfo = (item: string): AnimeInfo | null => cache[item.toLowerCase().trim()] || null;
+  const isLoading = (item: string) => loadingKeys.has(item.toLowerCase().trim());
 
   return (
     <div className="flex flex-col h-full">
@@ -100,7 +134,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
             value={newValue}
             onChange={e => setNewValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type name... (auto-fetches anime card)"
+            placeholder="Type anime name, press Enter..."
             className="flex-1 h-9 bg-secondary/50 border border-border/20 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors"
           />
           <motion.button
@@ -112,7 +146,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
           </motion.button>
         </div>
         <p className="text-[10px] text-muted-foreground/40 mt-1.5 px-1">
-          📝 Name likho, anime card khud aa jayega! Comma se alag karo.
+          📝 Anime name likho, image auto fetch hoga! Comma se multiple add karo.
         </p>
       </div>
 
@@ -122,7 +156,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
           <div className="text-center py-12">
             <div className="text-3xl mb-2">🎯</div>
             <p className="text-sm text-muted-foreground/40 font-medium">No entries yet</p>
-            <p className="text-xs text-muted-foreground/25 mt-1">Add names above to spin</p>
+            <p className="text-xs text-muted-foreground/25 mt-1">Add anime names above to spin</p>
           </div>
         ) : (
           <div className="divide-y divide-border/5">
@@ -143,38 +177,38 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
                   </span>
 
                   {/* Image or letter fallback */}
-                  <div className={`shrink-0 overflow-hidden flex items-center justify-center ${
-                    info?.image ? 'w-10 h-10 rounded-lg' : 'w-8 h-8 rounded'
-                  } bg-muted/20`}>
+                  <div className={`shrink-0 overflow-hidden flex items-center justify-center w-10 h-10 rounded-lg bg-muted/20`}>
                     {loading ? (
                       <Loader2 className="w-3 h-3 text-muted-foreground/30 animate-spin" />
                     ) : info?.image ? (
-                      <img src={info.image} alt={item} className="w-full h-full object-cover" />
+                      <img src={info.image} alt={info.title || item} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[10px] text-muted-foreground/20 font-bold">
+                      <span className="text-xs text-muted-foreground/30 font-bold">
                         {item.charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
 
-                  {/* Name */}
-                  {editingIndex === i ? (
-                    <input
-                      autoFocus
-                      value={editValue}
-                      onChange={e => setEditValue(e.target.value)}
-                      onKeyDown={handleEditKeyDown}
-                      onBlur={commitEdit}
-                      className="flex-1 h-8 bg-transparent text-sm text-foreground font-medium px-1 focus:outline-none border-b border-primary/40"
-                    />
-                  ) : (
-                    <span
-                      onClick={() => startEdit(i)}
-                      className="flex-1 text-sm text-foreground font-medium px-1 cursor-text truncate"
-                    >
-                      {item}
-                    </span>
-                  )}
+                  {/* Name + title */}
+                  <div className="flex-1 min-w-0">
+                    {editingIndex === i ? (
+                      <input
+                        autoFocus
+                        value={editValue}
+                        onChange={e => setEditValue(e.target.value)}
+                        onKeyDown={handleEditKeyDown}
+                        onBlur={commitEdit}
+                        className="w-full h-8 bg-transparent text-sm text-foreground font-medium px-1 focus:outline-none border-b border-primary/40"
+                      />
+                    ) : (
+                      <span
+                        onClick={() => startEdit(i)}
+                        className="block text-sm text-foreground font-medium px-1 cursor-text truncate"
+                      >
+                        {info?.title || item}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Remove */}
                   <motion.button
