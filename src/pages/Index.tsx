@@ -236,7 +236,7 @@ const Index = () => {
   const PanelContent = () => (
     <div className="flex-1 min-h-0 overflow-hidden">
       {activeTab === 'entries' ? (
-        <WheelInput items={currentItems} onUpdateItems={handleUpdateItems} onClearAll={handleClearAll} onImagesChange={handleImagesChange} />
+        <WheelInput items={currentItems} onUpdateItems={handleUpdateItems} onClearAll={handleClearAll} onImagesChange={(imgs) => setAnimeImages(prev => { const sig = JSON.stringify(imgs); const prevSig = JSON.stringify(prev); return sig === prevSig ? prev : imgs; })} />
       ) : activeTab === 'results' ? (
         <ResultsList />
       ) : (
