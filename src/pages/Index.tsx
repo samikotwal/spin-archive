@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download } from 'lucide-react';
@@ -34,9 +34,13 @@ const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [eliminationMode, setEliminationMode] = useState(false);
   const [animeImages, setAnimeImages] = useState<Record<string, { image: string | null; title: string | null }>>({});
-
+  const animeImagesRef = useRef('');
   const handleImagesChange = useCallback((images: Record<string, { image: string | null; title: string | null }>) => {
-    setAnimeImages(images);
+    const sig = JSON.stringify(images);
+    if (sig !== animeImagesRef.current) {
+      animeImagesRef.current = sig;
+      setAnimeImages(images);
+    }
   }, []);
 
   // Legacy wheel data (for non-logged-in users)

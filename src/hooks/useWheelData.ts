@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -227,14 +227,15 @@ export const useWheelData = () => {
     return data || [];
   };
 
-  // Build display items with name + optional image
-  const displayItems: WheelDisplayItem[] = wheelItems.map(item => ({
+  // Memoize derived arrays to prevent unnecessary re-renders
+  const wheelItemValues = useMemo(() => wheelItems.map(item => item.value), [wheelItems]);
+  const displayItems: WheelDisplayItem[] = useMemo(() => wheelItems.map(item => ({
     name: item.value,
     imageUrl: item.image_url,
-  }));
+  })), [wheelItems]);
 
   return {
-    wheelItems: wheelItems.map(item => item.value),
+    wheelItems: wheelItemValues,
     wheelItemsFull: wheelItems,
     displayItems,
     lists,
