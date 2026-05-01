@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download } from 'lucide-react';
+import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SpinningWheel from '@/components/SpinningWheel';
 import WheelInput from '@/components/WheelInput';
@@ -10,6 +10,9 @@ import ListSelector from '@/components/ListSelector';
 import WheelSidebar from '@/components/WheelSidebar';
 import SpinHistoryPanel from '@/components/SpinHistoryPanel';
 import ExportResults from '@/components/ExportResults';
+import { ToastAction } from '@/components/ui/toast';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { useWheelData } from '@/hooks/useWheelData';
 import { useWheels } from '@/hooks/useWheels';
 import { useSpinHistory } from '@/hooks/useSpinHistory';
