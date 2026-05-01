@@ -85,12 +85,30 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
 
   const handleAdd = () => {
     if (!newValue.trim()) return;
+    // Split on newlines, commas, semicolons, tabs, or pipes
     const parsed = newValue
-      .split(/[\n,]+/)
-      .map(s => s.trim())
+      .split(/[\n,;\t|]+/)
+      .map(s =>
+        s
+          // strip leading numbering like "1.", "1)", "1-", "(1)", "01:"
+          .replace(/^\s*\(?\d+\)?\s*[.)\-:]\s*/, '')
+          // strip leading bullets
+          .replace(/^\s*[•\-*–—]\s*/, '')
+          .trim()
+      )
       .filter(s => s.length > 0);
     if (parsed.length > 0) {
-      onUpdateItems([...items, ...parsed]);
+      // Dedupe against existing (case-insensitive)
+      const existing = new Set(items.map(i => i.toLowerCase()));
+      const unique: string[] = [];
+      for (const p of parsed) {
+        const k = p.toLowerCase();
+        if (!existing.has(k)) {
+          existing.add(k);
+          unique.push(p);
+        }
+      }
+      if (unique.length > 0) onUpdateItems([...items, ...unique]);
       setNewValue('');
       inputRef.current?.focus();
     }
@@ -137,13 +155,14 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
       {/* Add input */}
       <div className="p-3 pb-0">
         <div className="flex gap-2">
-          <input
-            ref={inputRef}
+          <textarea
+            ref={inputRef as unknown as React.RefObject<HTMLTextAreaElement>}
             value={newValue}
             onChange={e => setNewValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type anime name, press Enter..."
-            className="flex-1 h-9 bg-secondary/50 border border-border/20 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors"
+            rows={newValue.includes('\n') ? Math.min(6, newValue.split('\n').length) : 1}
+            placeholder="Type anime name(s)... paste a numbered list — auto-splits"
+            className="flex-1 min-h-9 max-h-32 bg-secondary/50 border border-border/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors resize-none"
           />
           <motion.button
             whileTap={{ scale: 0.9 }}
