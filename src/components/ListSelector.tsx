@@ -155,6 +155,7 @@ const ListSelector = ({ lists, selectedListId, onSelectList, getListItems }: Lis
               </div>
             )}
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
