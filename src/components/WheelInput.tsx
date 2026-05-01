@@ -183,6 +183,65 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
         <p className="text-[10px] text-muted-foreground/40 mt-1.5 px-1">
           📝 Anime name likho, image auto fetch hoga! Comma se multiple add karo.
         </p>
+
+        {/* Live split preview */}
+        <AnimatePresence initial={false}>
+          {showPreview && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-2">
+                <div className="flex items-center justify-between mb-1.5 px-1">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary/80">
+                    <Eye className="w-3 h-3" />
+                    Preview · {previewItems.length} item{previewItems.length === 1 ? '' : 's'}
+                  </div>
+                  {previewDuplicateCount > 0 && (
+                    <span className="text-[9px] font-semibold text-amber-500/90 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                      {previewDuplicateCount} duplicate{previewDuplicateCount === 1 ? '' : 's'} skipped
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                  {previewItems.slice(0, 50).map((p, idx) => {
+                    const isDup = existingLower.has(p.toLowerCase());
+                    return (
+                      <motion.span
+                        key={`${idx}-${p}`}
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: Math.min(idx * 0.01, 0.2) }}
+                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+                          isDup
+                            ? 'bg-muted/40 text-muted-foreground/60 border-border/20 line-through'
+                            : 'bg-card text-foreground border-primary/30'
+                        }`}
+                        title={isDup ? 'Already in your list' : p}
+                      >
+                        {p}
+                      </motion.span>
+                    );
+                  })}
+                  {previewItems.length > 50 && (
+                    <span className="text-[10px] text-muted-foreground/60 px-1">
+                      +{previewItems.length - 50} more…
+                    </span>
+                  )}
+                </div>
+                {previewUnique.length > 3 && (
+                  <p className="text-[9px] text-muted-foreground/60 mt-1.5 px-1 flex items-center gap-1">
+                    <Sparkles className="w-2.5 h-2.5 text-primary/60" />
+                    Will drip into the wheel one by one
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Numbered list */}
