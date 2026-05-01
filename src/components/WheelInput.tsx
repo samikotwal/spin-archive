@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { RotateCcw, X, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { RotateCcw, X, Loader2, Eye, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchAnimeImage, getImageCache, type AnimeInfo } from '@/lib/animeImageCache';
+import { parseEntries, dedupeAgainst } from '@/lib/parseEntries';
 
 interface WheelInputProps {
   items: string[];
@@ -83,32 +84,39 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsKey]);
 
+  // Live preview of how the pasted text will be split
+  const previewItems = useMemo(() => parseEntries(newValue), [newValue]);
+  const existingLower = useMemo(() => new Set(items.map(i => i.toLowerCase())), [items]);
+  const previewUnique = useMemo(
+    () => dedupeAgainst(items, previewItems),
+    [items, previewItems]
+  );
+  const previewDuplicateCount = previewItems.length - previewUnique.length;
+  const showPreview = previewItems.length >= 2;
+
   const handleAdd = () => {
     if (!newValue.trim()) return;
-    // Split on newlines, commas, semicolons, tabs, or pipes
-    const parsed = newValue
-      .split(/[\n,;\t|]+/)
-      .map(s =>
-        s
-          // strip leading numbering like "1.", "1)", "1-", "(1)", "01:"
-          .replace(/^\s*\(?\d+\)?\s*[.)\-:]\s*/, '')
-          // strip leading bullets
-          .replace(/^\s*[•\-*–—]\s*/, '')
-          .trim()
-      )
-      .filter(s => s.length > 0);
-    if (parsed.length > 0) {
-      // Dedupe against existing (case-insensitive)
-      const existing = new Set(items.map(i => i.toLowerCase()));
-      const unique: string[] = [];
-      for (const p of parsed) {
-        const k = p.toLowerCase();
-        if (!existing.has(k)) {
-          existing.add(k);
-          unique.push(p);
-        }
-      }
-      if (unique.length > 0) onUpdateItems([...items, ...unique]);
+    const parsed = parseEntries(newValue);
+    if (parsed.length === 0) return;
+    const unique = dedupeAgainst(items, parsed);
+    if (unique.length === 0) {
+      setNewValue('');
+      return;
+    }
+
+    // If adding many at once, drip them in for a nice animated entry.
+    if (unique.length > 3) {
+      setNewValue('');
+      inputRef.current?.focus();
+      let current = [...items];
+      unique.forEach((entry, idx) => {
+        setTimeout(() => {
+          current = [...current, entry];
+          onUpdateItems(current);
+        }, idx * 140);
+      });
+    } else {
+      onUpdateItems([...items, ...unique]);
       setNewValue('');
       inputRef.current?.focus();
     }
@@ -175,6 +183,65 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
         <p className="text-[10px] text-muted-foreground/40 mt-1.5 px-1">
           📝 Anime name likho, image auto fetch hoga! Comma se multiple add karo.
         </p>
+
+        {/* Live split preview */}
+        <AnimatePresence initial={false}>
+          {showPreview && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-2">
+                <div className="flex items-center justify-between mb-1.5 px-1">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary/80">
+                    <Eye className="w-3 h-3" />
+                    Preview · {previewItems.length} item{previewItems.length === 1 ? '' : 's'}
+                  </div>
+                  {previewDuplicateCount > 0 && (
+                    <span className="text-[9px] font-semibold text-amber-500/90 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                      {previewDuplicateCount} duplicate{previewDuplicateCount === 1 ? '' : 's'} skipped
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                  {previewItems.slice(0, 50).map((p, idx) => {
+                    const isDup = existingLower.has(p.toLowerCase());
+                    return (
+                      <motion.span
+                        key={`${idx}-${p}`}
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: Math.min(idx * 0.01, 0.2) }}
+                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+                          isDup
+                            ? 'bg-muted/40 text-muted-foreground/60 border-border/20 line-through'
+                            : 'bg-card text-foreground border-primary/30'
+                        }`}
+                        title={isDup ? 'Already in your list' : p}
+                      >
+                        {p}
+                      </motion.span>
+                    );
+                  })}
+                  {previewItems.length > 50 && (
+                    <span className="text-[10px] text-muted-foreground/60 px-1">
+                      +{previewItems.length - 50} more…
+                    </span>
+                  )}
+                </div>
+                {previewUnique.length > 3 && (
+                  <p className="text-[9px] text-muted-foreground/60 mt-1.5 px-1 flex items-center gap-1">
+                    <Sparkles className="w-2.5 h-2.5 text-primary/60" />
+                    Will drip into the wheel one by one
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Numbered list */}

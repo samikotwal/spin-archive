@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download } from 'lucide-react';
+import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SpinningWheel from '@/components/SpinningWheel';
 import WheelInput from '@/components/WheelInput';
@@ -10,6 +10,9 @@ import ListSelector from '@/components/ListSelector';
 import WheelSidebar from '@/components/WheelSidebar';
 import SpinHistoryPanel from '@/components/SpinHistoryPanel';
 import ExportResults from '@/components/ExportResults';
+import { ToastAction } from '@/components/ui/toast';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { useWheelData } from '@/hooks/useWheelData';
 import { useWheels } from '@/hooks/useWheels';
 import { useSpinHistory } from '@/hooks/useSpinHistory';
@@ -83,8 +86,57 @@ const Index = () => {
     startTicking(4500);
   };
 
+  const { toast } = useToast();
+
+  const handleUndoRemove = useCallback(async (
+    item: string,
+    originalIndex: number,
+    listIdAtDelete: string | null,
+    wasFromNewSystem: boolean,
+  ) => {
+    // Remove from results stack
+    setResults(prev => {
+      const i = prev.indexOf(item);
+      if (i === -1) return prev;
+      const next = [...prev];
+      next.splice(i, 1);
+      return next;
+    });
+
+    // Remove the saved-to-list copy (if any)
+    if (listIdAtDelete) {
+      await supabase
+        .from('deleted_items')
+        .delete()
+        .eq('list_id', listIdAtDelete)
+        .eq('value', item);
+    }
+
+    // Restore back into the wheel at the original position
+    if (wasFromNewSystem) {
+      const next = [...entryValues];
+      const at = Math.min(Math.max(originalIndex, 0), next.length);
+      next.splice(at, 0, item);
+      await updateEntries(next);
+    } else {
+      const next = [...wheelItems];
+      const at = Math.min(Math.max(originalIndex, 0), next.length);
+      next.splice(at, 0, item);
+      // wheelItems setter goes through clear+add via handleUpdateItems
+      await clearAllItems();
+      await addWheelItems(next.map(name => ({ name })));
+    }
+
+    toast({ title: 'Restored', description: `"${item}" is back on the wheel` });
+  }, [entryValues, wheelItems, updateEntries, clearAllItems, addWheelItems, toast]);
+
   const handleConfirmDelete = async () => {
-    if (selectedItem) setResults(prev => [selectedItem, ...prev]);
+    const itemAtDelete = selectedItem;
+    const indexAtDelete = selectedIndex;
+    const listIdAtDelete = selectedListId;
+    const wasFromNewSystem = isUsingNewSystem;
+
+    if (itemAtDelete) setResults(prev => [itemAtDelete, ...prev]);
 
     if (eliminationMode) {
       if (isUsingNewSystem && entries[selectedIndex]) {
@@ -105,6 +157,21 @@ const Index = () => {
     setShowDeleteDialog(false);
     setSelectedItem(null);
     setSelectedIndex(-1);
+
+    if (itemAtDelete) {
+      toast({
+        title: 'Removed',
+        description: `"${itemAtDelete}" removed from the wheel`,
+        action: (
+          <ToastAction
+            altText="Undo remove"
+            onClick={() => handleUndoRemove(itemAtDelete, indexAtDelete, listIdAtDelete, wasFromNewSystem)}
+          >
+            <Undo2 className="w-3.5 h-3.5 mr-1" /> Undo
+          </ToastAction>
+        ),
+      });
+    }
   };
 
   const handleCancelDelete = () => {
