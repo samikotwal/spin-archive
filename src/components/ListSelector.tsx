@@ -60,14 +60,23 @@ const ListSelector = ({ lists, selectedListId, onSelectList, getListItems }: Lis
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -5, scaleY: 0.95 }}
-            animate={{ opacity: 1, y: 0, scaleY: 1 }}
-            exit={{ opacity: 0, y: -5, scaleY: 0.95 }}
-            transition={spring}
-            className="absolute bottom-full left-0 right-0 mb-2 bg-card border border-border/20 rounded-xl overflow-hidden z-30 shadow-xl max-h-[50vh] overflow-y-auto"
-            style={{ transformOrigin: 'bottom' }}
-          >
+          <>
+            {/* Click-away backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 z-40 bg-background/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -5, scaleY: 0.95 }}
+              animate={{ opacity: 1, y: 0, scaleY: 1 }}
+              exit={{ opacity: 0, y: -5, scaleY: 0.95 }}
+              transition={spring}
+              className="absolute bottom-full left-0 right-0 mb-2 bg-card border border-border/20 rounded-xl overflow-hidden z-50 shadow-2xl max-h-[50vh] overflow-y-auto"
+              style={{ transformOrigin: 'bottom' }}
+            >
             {lists.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground text-xs">
                 <FolderOpen className="w-6 h-6 mx-auto mb-2 opacity-30" />
