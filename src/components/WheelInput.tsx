@@ -84,32 +84,39 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsKey]);
 
+  // Live preview of how the pasted text will be split
+  const previewItems = useMemo(() => parseEntries(newValue), [newValue]);
+  const existingLower = useMemo(() => new Set(items.map(i => i.toLowerCase())), [items]);
+  const previewUnique = useMemo(
+    () => dedupeAgainst(items, previewItems),
+    [items, previewItems]
+  );
+  const previewDuplicateCount = previewItems.length - previewUnique.length;
+  const showPreview = previewItems.length >= 2;
+
   const handleAdd = () => {
     if (!newValue.trim()) return;
-    // Split on newlines, commas, semicolons, tabs, or pipes
-    const parsed = newValue
-      .split(/[\n,;\t|]+/)
-      .map(s =>
-        s
-          // strip leading numbering like "1.", "1)", "1-", "(1)", "01:"
-          .replace(/^\s*\(?\d+\)?\s*[.)\-:]\s*/, '')
-          // strip leading bullets
-          .replace(/^\s*[•\-*–—]\s*/, '')
-          .trim()
-      )
-      .filter(s => s.length > 0);
-    if (parsed.length > 0) {
-      // Dedupe against existing (case-insensitive)
-      const existing = new Set(items.map(i => i.toLowerCase()));
-      const unique: string[] = [];
-      for (const p of parsed) {
-        const k = p.toLowerCase();
-        if (!existing.has(k)) {
-          existing.add(k);
-          unique.push(p);
-        }
-      }
-      if (unique.length > 0) onUpdateItems([...items, ...unique]);
+    const parsed = parseEntries(newValue);
+    if (parsed.length === 0) return;
+    const unique = dedupeAgainst(items, parsed);
+    if (unique.length === 0) {
+      setNewValue('');
+      return;
+    }
+
+    // If adding many at once, drip them in for a nice animated entry.
+    if (unique.length > 3) {
+      setNewValue('');
+      inputRef.current?.focus();
+      let current = [...items];
+      unique.forEach((entry, idx) => {
+        setTimeout(() => {
+          current = [...current, entry];
+          onUpdateItems(current);
+        }, idx * 140);
+      });
+    } else {
+      onUpdateItems([...items, ...unique]);
       setNewValue('');
       inputRef.current?.focus();
     }
