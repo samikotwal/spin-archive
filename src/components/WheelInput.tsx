@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { RotateCcw, X, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { RotateCcw, X, Loader2, Eye, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchAnimeImage, getImageCache, type AnimeInfo } from '@/lib/animeImageCache';
+import { parseEntries, dedupeAgainst } from '@/lib/parseEntries';
 
 interface WheelInputProps {
   items: string[];
