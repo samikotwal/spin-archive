@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, X, Loader2, Eye, Sparkles } from 'lucide-react';
+import { RotateCcw, X, Loader2, Eye, Sparkles, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchAnimeImage, getImageCache, type AnimeInfo } from '@/lib/animeImageCache';
-import { parseEntries, dedupeAgainst } from '@/lib/parseEntries';
+import { parseEntries, dedupeAgainst, type SplitMode } from '@/lib/parseEntries';
+import { DRIP_PRESETS, getDripSpeed, setDripSpeed, getSplitMode, setSplitMode } from '@/lib/wheelInputPrefs';
 
 interface WheelInputProps {
   items: string[];
@@ -19,6 +20,9 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
   const [newValue, setNewValue] = useState('');
   const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
   const [imageVersion, setImageVersion] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
+  const [dripMs, setDripMsState] = useState<number>(() => getDripSpeed());
+  const [splitMode, setSplitModeState] = useState<SplitMode>(() => getSplitMode());
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fetchedRef = useRef<Set<string>>(new Set());
   const onImagesChangeRef = useRef(onImagesChange);
@@ -27,7 +31,6 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
 
   const itemsKey = items.join('\n');
 
-  // Notify parent only when image data actually changes
   useEffect(() => {
     const cache = getImageCache();
     const relevant: Record<string, AnimeInfo> = {};
@@ -43,28 +46,22 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsKey, imageVersion]);
 
-  // Fetch anime images for items not yet fetched
   useEffect(() => {
     const cache = getImageCache();
     const toFetch: string[] = [];
-
     for (const item of items) {
       const key = item.toLowerCase().trim();
       if (key.length < 2 || key in cache || fetchedRef.current.has(key)) continue;
       toFetch.push(item);
       fetchedRef.current.add(key);
     }
-
     if (toFetch.length === 0) return;
-
     setLoadingKeys(prev => {
       const next = new Set(prev);
       toFetch.forEach(t => next.add(t.toLowerCase().trim()));
       return next;
     });
-
     let cancelled = false;
-
     (async () => {
       for (let i = 0; i < toFetch.length; i++) {
         if (cancelled) return;
@@ -79,24 +76,33 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
         setImageVersion(v => v + 1);
       }
     })();
-
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsKey]);
 
-  // Live preview of how the pasted text will be split
-  const previewItems = useMemo(() => parseEntries(newValue), [newValue]);
+  // Live preview using current split mode
+  const previewItems = useMemo(() => parseEntries(newValue, splitMode), [newValue, splitMode]);
   const existingLower = useMemo(() => new Set(items.map(i => i.toLowerCase())), [items]);
-  const previewUnique = useMemo(
-    () => dedupeAgainst(items, previewItems),
-    [items, previewItems]
-  );
+  const previewUnique = useMemo(() => dedupeAgainst(items, previewItems), [items, previewItems]);
   const previewDuplicateCount = previewItems.length - previewUnique.length;
-  const showPreview = previewItems.length >= 2;
+  const showPreview = previewItems.length >= 1 && newValue.trim().length > 0;
 
-  const handleAdd = () => {
+  // Map: previewItem index -> landing position (1-based) in the wheel after Add.
+  // Duplicates land at no position (-1).
+  const landingPositions = useMemo(() => {
+    const seen = new Set(items.map(i => i.toLowerCase()));
+    let nextPos = items.length + 1;
+    return previewItems.map(p => {
+      const k = p.toLowerCase();
+      if (seen.has(k)) return -1;
+      seen.add(k);
+      return nextPos++;
+    });
+  }, [items, previewItems]);
+
+  const handleAdd = useCallback(() => {
     if (!newValue.trim()) return;
-    const parsed = parseEntries(newValue);
+    const parsed = parseEntries(newValue, splitMode);
     if (parsed.length === 0) return;
     const unique = dedupeAgainst(items, parsed);
     if (unique.length === 0) {
@@ -104,8 +110,7 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
       return;
     }
 
-    // If adding many at once, drip them in for a nice animated entry.
-    if (unique.length > 3) {
+    if (unique.length > 3 && dripMs > 0) {
       setNewValue('');
       inputRef.current?.focus();
       let current = [...items];
@@ -113,14 +118,14 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
         setTimeout(() => {
           current = [...current, entry];
           onUpdateItems(current);
-        }, idx * 140);
+        }, idx * dripMs);
       });
     } else {
       onUpdateItems([...items, ...unique]);
       setNewValue('');
       inputRef.current?.focus();
     }
-  };
+  }, [newValue, splitMode, items, dripMs, onUpdateItems]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -154,6 +159,15 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
     if (e.key === 'Escape') { setEditingIndex(null); setEditValue(''); }
   };
 
+  const updateDrip = (ms: number) => {
+    setDripMsState(ms);
+    setDripSpeed(ms);
+  };
+  const updateSplit = (mode: SplitMode) => {
+    setSplitModeState(mode);
+    setSplitMode(mode);
+  };
+
   const cache = getImageCache();
   const getAnimeInfo = (item: string): AnimeInfo | null => cache[item.toLowerCase().trim()] || null;
   const isItemLoading = (item: string) => loadingKeys.has(item.toLowerCase().trim());
@@ -176,15 +190,109 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
             whileTap={{ scale: 0.9 }}
             onClick={handleAdd}
             className="h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold shrink-0 hover:bg-primary/90 transition-colors"
+            title="Add to wheel"
           >
             +
           </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowSettings(s => !s)}
+            className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-colors border ${
+              showSettings
+                ? 'bg-primary/10 text-primary border-primary/30'
+                : 'bg-secondary/40 text-muted-foreground border-border/20 hover:text-foreground'
+            }`}
+            title="Input settings"
+          >
+            <Settings2 className="w-4 h-4" />
+          </motion.button>
         </div>
         <p className="text-[10px] text-muted-foreground/40 mt-1.5 px-1">
-          📝 Anime name likho, image auto fetch hoga! Comma se multiple add karo.
+          📝 Anime name likho — paste karke ek saath multiple add bhi kar sakte ho.
         </p>
 
-        {/* Live split preview */}
+        {/* Settings panel */}
+        <AnimatePresence initial={false}>
+          {showSettings && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-2 rounded-lg border border-border/20 bg-card/60 p-3 space-y-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Split pasted text on
+                  </p>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => updateSplit('smart')}
+                      className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md border transition-colors ${
+                        splitMode === 'smart'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-transparent text-muted-foreground border-border/20 hover:text-foreground'
+                      }`}
+                    >
+                      Lines + commas
+                    </button>
+                    <button
+                      onClick={() => updateSplit('lines')}
+                      className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md border transition-colors ${
+                        splitMode === 'lines'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-transparent text-muted-foreground border-border/20 hover:text-foreground'
+                      }`}
+                    >
+                      Newlines only
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground/60 mt-1">
+                    {splitMode === 'lines'
+                      ? 'Commas inside names will be preserved.'
+                      : 'Smart split on newlines, commas, semicolons, tabs, pipes.'}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Drip speed (bulk add)
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {DRIP_PRESETS.map(p => (
+                      <button
+                        key={p.value}
+                        onClick={() => updateDrip(p.value)}
+                        className={`text-[10px] font-semibold px-2 py-1 rounded-md border transition-colors ${
+                          dripMs === p.value
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-transparent text-muted-foreground border-border/20 hover:text-foreground'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={600}
+                    step={10}
+                    value={dripMs}
+                    onChange={e => updateDrip(Number(e.target.value))}
+                    className="w-full mt-2 accent-primary"
+                  />
+                  <p className="text-[9px] text-muted-foreground/60 mt-0.5">
+                    {dripMs === 0 ? 'Items appear instantly.' : `${dripMs}ms between items.`}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Live split preview with landing positions */}
         <AnimatePresence initial={false}>
           {showPreview && (
             <motion.div
@@ -199,29 +307,45 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary/80">
                     <Eye className="w-3 h-3" />
                     Preview · {previewItems.length} item{previewItems.length === 1 ? '' : 's'}
+                    {previewUnique.length > 0 && (
+                      <span className="text-muted-foreground/70 font-normal normal-case tracking-normal">
+                        → lands at #{items.length + 1}
+                        {previewUnique.length > 1 ? `–#${items.length + previewUnique.length}` : ''}
+                      </span>
+                    )}
                   </div>
                   {previewDuplicateCount > 0 && (
                     <span className="text-[9px] font-semibold text-amber-500/90 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                      {previewDuplicateCount} duplicate{previewDuplicateCount === 1 ? '' : 's'} skipped
+                      {previewDuplicateCount} dup{previewDuplicateCount === 1 ? '' : 's'} skipped
                     </span>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto">
                   {previewItems.slice(0, 50).map((p, idx) => {
-                    const isDup = existingLower.has(p.toLowerCase());
+                    const isDup = landingPositions[idx] === -1;
+                    const pos = landingPositions[idx];
                     return (
                       <motion.span
                         key={`${idx}-${p}`}
                         initial={{ opacity: 0, scale: 0.85 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: Math.min(idx * 0.01, 0.2) }}
-                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+                        className={`text-[10px] font-medium pl-1 pr-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
                           isDup
                             ? 'bg-muted/40 text-muted-foreground/60 border-border/20 line-through'
                             : 'bg-card text-foreground border-primary/30'
                         }`}
-                        title={isDup ? 'Already in your list' : p}
+                        title={isDup ? 'Already in your list — will be skipped' : `Will land at position #${pos}`}
                       >
+                        <span
+                          className={`min-w-[18px] h-[16px] px-1 inline-flex items-center justify-center rounded-full text-[9px] font-bold ${
+                            isDup
+                              ? 'bg-muted text-muted-foreground/50'
+                              : 'bg-primary text-primary-foreground'
+                          }`}
+                        >
+                          {isDup ? '✕' : `#${pos}`}
+                        </span>
                         {p}
                       </motion.span>
                     );
@@ -232,10 +356,10 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
                     </span>
                   )}
                 </div>
-                {previewUnique.length > 3 && (
+                {previewUnique.length > 3 && dripMs > 0 && (
                   <p className="text-[9px] text-muted-foreground/60 mt-1.5 px-1 flex items-center gap-1">
                     <Sparkles className="w-2.5 h-2.5 text-primary/60" />
-                    Will drip into the wheel one by one
+                    Drip: {dripMs}ms between items (~{Math.round(previewUnique.length * dripMs / 100) / 10}s total)
                   </p>
                 )}
               </div>
