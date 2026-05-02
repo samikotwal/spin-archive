@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, ChevronDown, X, Loader2, StickyNote, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ChevronDown, X, Loader2, StickyNote, FileText, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useWheelData } from '@/hooks/useWheelData';
 import { useLenis } from '@/hooks/useLenis';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 25 };
 
@@ -18,15 +20,23 @@ const NOTE_COLORS = [
   'from-orange-500/10 to-red-500/5 border-orange-500/20',
 ];
 
+interface SavedItem {
+  id: string;
+  value: string;
+  deleted_at: string;
+}
+
 const SavedLists = () => {
   useLenis();
   const navigate = useNavigate();
-  const { lists, createList, deleteList, getListItems } = useWheelData();
+  const { lists, createList, deleteList, getListItems, addWheelItems, wheelItems } = useWheelData();
+  const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
   const [expandedListId, setExpandedListId] = useState<string | null>(null);
-  const [listItems, setListItems] = useState<Record<string, { id: string; value: string; deleted_at: string }[]>>({});
+  const [listItems, setListItems] = useState<Record<string, SavedItem[]>>({});
   const [loadingListId, setLoadingListId] = useState<string | null>(null);
+  const [addInputs, setAddInputs] = useState<Record<string, string>>({});
 
   const handleCreateList = async () => {
     if (!newListTitle.trim()) return;
@@ -35,13 +45,64 @@ const SavedLists = () => {
     setIsCreating(false);
   };
 
+  const refreshList = async (listId: string) => {
+    const items = await getListItems(listId);
+    // Sort ascending by date so numbering #1 = first added.
+    items.sort((a, b) => new Date(a.deleted_at).getTime() - new Date(b.deleted_at).getTime());
+    setListItems(prev => ({ ...prev, [listId]: items }));
+  };
+
   const handleExpandList = async (listId: string) => {
     if (expandedListId === listId) { setExpandedListId(null); return; }
     setExpandedListId(listId);
     setLoadingListId(listId);
-    const items = await getListItems(listId);
-    setListItems(prev => ({ ...prev, [listId]: items }));
+    await refreshList(listId);
     setLoadingListId(null);
+  };
+
+  const handleAddItem = async (listId: string) => {
+    const raw = (addInputs[listId] || '').trim();
+    if (!raw) return;
+    const existing = listItems[listId] || [];
+    if (existing.some(i => i.value.toLowerCase() === raw.toLowerCase())) {
+      toast({ title: 'Duplicate', description: `"${raw}" is already in this list`, variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase
+      .from('deleted_items')
+      .insert({ value: raw, list_id: listId });
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to add item', variant: 'destructive' });
+      return;
+    }
+    setAddInputs(prev => ({ ...prev, [listId]: '' }));
+    await refreshList(listId);
+  };
+
+  const handleRemoveSavedItem = async (listId: string, item: SavedItem) => {
+    const { error } = await supabase
+      .from('deleted_items')
+      .delete()
+      .eq('id', item.id);
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to delete', variant: 'destructive' });
+      return;
+    }
+    setListItems(prev => ({
+      ...prev,
+      [listId]: (prev[listId] || []).filter(i => i.id !== item.id),
+    }));
+  };
+
+  const handleRestoreToWheel = async (listId: string, item: SavedItem) => {
+    // Avoid duplicate on the wheel
+    if (wheelItems.some(w => w.toLowerCase() === item.value.toLowerCase())) {
+      toast({ title: 'Already on wheel', description: `"${item.value}" is already an entry` });
+      return;
+    }
+    await addWheelItems([{ name: item.value }]);
+    await handleRemoveSavedItem(listId, item);
+    toast({ title: 'Restored', description: `"${item.value}" added back to the wheel` });
   };
 
   return (
@@ -168,7 +229,7 @@ const SavedLists = () => {
                     </p>
                   </div>
 
-                  {/* Expanded items - note-style lines */}
+                  {/* Expanded items */}
                   <AnimatePresence>
                     {isExpanded && (
                       <motion.div
@@ -177,8 +238,28 @@ const SavedLists = () => {
                         exit={{ height: 0, opacity: 0 }}
                         transition={spring}
                         className="border-t border-border/10"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <div className="p-4">
+                          {/* Manual add */}
+                          <div className="flex gap-2 mb-3">
+                            <Input
+                              value={addInputs[list.id] || ''}
+                              onChange={(e) => setAddInputs(prev => ({ ...prev, [list.id]: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleAddItem(list.id); }}
+                              placeholder="Add item..."
+                              className="h-8 text-xs bg-background/60 border-border/20 rounded-lg"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleAddItem(list.id)}
+                              disabled={!(addInputs[list.id] || '').trim()}
+                              className="h-8 px-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+
                           {loadingListId === list.id ? (
                             <div className="flex items-center justify-center py-6">
                               <Loader2 className="w-5 h-5 animate-spin text-primary" />
@@ -193,11 +274,29 @@ const SavedLists = () => {
                                   initial={{ opacity: 0, x: -10 }}
                                   animate={{ opacity: 1, x: 0 }}
                                   transition={{ delay: i * 0.03 }}
-                                  className="flex items-center gap-2.5 py-2.5 border-b border-border/5 last:border-0"
+                                  className="group flex items-center gap-2.5 py-2 border-b border-border/5 last:border-0"
                                 >
-                                  <span className="text-[10px] text-muted-foreground/30 font-mono w-4 text-right shrink-0">{i + 1}</span>
-                                  <span className="flex-1 text-sm text-foreground font-medium">{item.value}</span>
-                                  <span className="text-[10px] text-muted-foreground/30">
+                                  <span className="text-[10px] text-muted-foreground/40 font-mono w-5 text-right shrink-0 font-bold">
+                                    {i + 1}.
+                                  </span>
+                                  <span className="flex-1 text-sm text-foreground font-medium truncate">{item.value}</span>
+                                  <motion.button
+                                    whileTap={{ scale: 0.85 }}
+                                    onClick={() => handleRestoreToWheel(list.id, item)}
+                                    title="Restore to wheel"
+                                    className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                  >
+                                    <Undo2 className="w-3 h-3" />
+                                  </motion.button>
+                                  <motion.button
+                                    whileTap={{ scale: 0.85 }}
+                                    onClick={() => handleRemoveSavedItem(list.id, item)}
+                                    title="Delete from list"
+                                    className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </motion.button>
+                                  <span className="text-[10px] text-muted-foreground/30 hidden sm:inline">
                                     {new Date(item.deleted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                   </span>
                                 </motion.div>

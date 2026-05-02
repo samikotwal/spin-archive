@@ -1,9 +1,13 @@
 // Shared parser for bulk entry input.
-// Splits on newlines, commas, semicolons, tabs, pipes; strips leading numbers/bullets.
-export function parseEntries(raw: string): string[] {
+// Mode 'smart' (default): split on newlines, commas, semicolons, tabs, pipes.
+// Mode 'lines': split ONLY on newlines (preserves commas inside names).
+export type SplitMode = 'smart' | 'lines';
+
+export function parseEntries(raw: string, mode: SplitMode = 'smart'): string[] {
   if (!raw) return [];
+  const splitter = mode === 'lines' ? /\n+/ : /[\n,;\t|]+/;
   return raw
-    .split(/[\n,;\t|]+/)
+    .split(splitter)
     .map(s =>
       s
         .replace(/^\s*\(?\d+\)?\s*[.)\-:]\s*/, '')
