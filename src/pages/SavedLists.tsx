@@ -105,6 +105,7 @@ const SavedLists = () => {
     // Sort ascending by date so numbering #1 = first added.
     items.sort((a, b) => new Date(a.deleted_at).getTime() - new Date(b.deleted_at).getTime());
     setListItems(prev => ({ ...prev, [listId]: items }));
+    setPreviewItems(prev => ({ ...prev, [listId]: items.slice(0, 4) }));
   };
 
   const handleExpandList = async (listId: string) => {
