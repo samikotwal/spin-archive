@@ -8,6 +8,7 @@ import WheelInput from '@/components/WheelInput';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import ListSelector from '@/components/ListSelector';
 import WheelSidebar from '@/components/WheelSidebar';
+import AnimeBrowsePanel from '@/components/AnimeBrowsePanel';
 import SpinHistoryPanel from '@/components/SpinHistoryPanel';
 import ExportResults from '@/components/ExportResults';
 import { ToastAction } from '@/components/ui/toast';
@@ -35,6 +36,7 @@ const Index = () => {
   const [panelOpen, setPanelOpen] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [browseCollapsed, setBrowseCollapsed] = useState(false);
   const [eliminationMode, setEliminationMode] = useState(false);
   const [animeImages, setAnimeImages] = useState<Record<string, { image: string | null; title: string | null }>>({});
   const animeImagesRef = useRef('');
@@ -457,6 +459,23 @@ const Index = () => {
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
+
+        {/* Anime browser */}
+        <AnimeBrowsePanel
+          collapsed={browseCollapsed}
+          onToggleCollapse={() => setBrowseCollapsed(!browseCollapsed)}
+          existingItems={currentItems}
+          onAdd={(name) => {
+            if (currentItems.some(i => i.toLowerCase().trim() === name.toLowerCase().trim())) {
+              toast({ title: 'Already added', description: `"${name}" is already on the wheel` });
+              return;
+            }
+            handleUpdateItems([...currentItems, name]);
+            toast({ title: 'Added', description: `"${name}" added to the wheel` });
+          }}
+        />
+
+
 
         {/* Wheel area */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}
