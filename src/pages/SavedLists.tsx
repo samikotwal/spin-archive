@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, ChevronDown, X, Loader2, StickyNote, FileText, Undo2 } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useWheelData } from '@/hooks/useWheelData';
 import { useLenis } from '@/hooks/useLenis';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { fetchAnimeImage, getImageCache, type AnimeInfo } from '@/lib/animeImageCache';
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 25 };
 
@@ -37,6 +38,60 @@ const SavedLists = () => {
   const [listItems, setListItems] = useState<Record<string, SavedItem[]>>({});
   const [loadingListId, setLoadingListId] = useState<string | null>(null);
   const [addInputs, setAddInputs] = useState<Record<string, string>>({});
+  const [imageVersion, setImageVersion] = useState(0);
+  const [previewItems, setPreviewItems] = useState<Record<string, SavedItem[]>>({});
+
+  // Lazy-fetch preview items (first 4) for every list to power the category preview thumbnails.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const list of lists) {
+        if (cancelled) return;
+        if (previewItems[list.id]) continue;
+        const items = await getListItems(list.id);
+        items.sort((a, b) => new Date(a.deleted_at).getTime() - new Date(b.deleted_at).getTime());
+        if (cancelled) return;
+        setPreviewItems(prev => ({ ...prev, [list.id]: items.slice(0, 4) }));
+        // Kick off image fetches for the preview values
+        const cache = getImageCache();
+        for (const it of items.slice(0, 4)) {
+          const key = it.value.toLowerCase().trim();
+          if (!(key in cache)) {
+            fetchAnimeImage(it.value).then(() => setImageVersion(v => v + 1));
+            await new Promise(r => setTimeout(r, 350));
+          }
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lists]);
+
+  // Whenever a list is expanded, also warm images for its visible items.
+  useEffect(() => {
+    if (!expandedListId) return;
+    const items = listItems[expandedListId] || [];
+    let cancelled = false;
+    (async () => {
+      const cache = getImageCache();
+      for (const it of items) {
+        if (cancelled) return;
+        const key = it.value.toLowerCase().trim();
+        if (key in cache) continue;
+        await fetchAnimeImage(it.value);
+        if (cancelled) return;
+        setImageVersion(v => v + 1);
+        await new Promise(r => setTimeout(r, 400));
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedListId, listItems]);
+
+  const cache = getImageCache();
+  const getInfo = (name: string): AnimeInfo | null => cache[name.toLowerCase().trim()] || null;
+  // Reference imageVersion to recompute on cache updates.
+  void imageVersion;
 
   const handleCreateList = async () => {
     if (!newListTitle.trim()) return;
@@ -50,6 +105,7 @@ const SavedLists = () => {
     // Sort ascending by date so numbering #1 = first added.
     items.sort((a, b) => new Date(a.deleted_at).getTime() - new Date(b.deleted_at).getTime());
     setListItems(prev => ({ ...prev, [listId]: items }));
+    setPreviewItems(prev => ({ ...prev, [listId]: items.slice(0, 4) }));
   };
 
   const handleExpandList = async (listId: string) => {
@@ -197,6 +253,8 @@ const SavedLists = () => {
               const colorClass = NOTE_COLORS[index % NOTE_COLORS.length];
               const isExpanded = expandedListId === list.id;
               const items = listItems[list.id] || [];
+              const preview = previewItems[list.id] || [];
+              const previewCount = preview.length;
 
               return (
                 <motion.div
@@ -208,6 +266,29 @@ const SavedLists = () => {
                   className={`bg-gradient-to-br ${colorClass} border rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow`}
                   onClick={() => handleExpandList(list.id)}
                 >
+                  {/* Category preview thumbnails */}
+                  {previewCount > 0 && (
+                    <div className="grid grid-cols-4 gap-px bg-black/20 border-b border-border/10">
+                      {preview.map((p) => {
+                        const info = getInfo(p.value);
+                        return (
+                          <div key={p.id} className="aspect-square bg-muted/30 relative overflow-hidden">
+                            {info?.image ? (
+                              <img src={info.image} alt={p.value} loading="lazy" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground/30 font-bold">
+                                {p.value.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {Array.from({ length: Math.max(0, 4 - previewCount) }).map((_, i) => (
+                        <div key={`ph-${i}`} className="aspect-square bg-muted/10" />
+                      ))}
+                    </div>
+                  )}
+
                   {/* Note header */}
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-2">
@@ -226,8 +307,10 @@ const SavedLists = () => {
                     <p className="text-xs text-muted-foreground">
                       {new Date(list.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       {items.length > 0 && ` · ${items.length} items`}
+                      {items.length === 0 && previewCount > 0 && ` · ${previewCount} items`}
                     </p>
                   </div>
+
 
                   {/* Expanded items */}
                   <AnimatePresence>
@@ -268,39 +351,51 @@ const SavedLists = () => {
                             <p className="text-center py-6 text-xs text-muted-foreground/50">No items saved yet</p>
                           ) : (
                             <div className="space-y-0">
-                              {items.map((item, i) => (
-                                <motion.div
-                                  key={item.id}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: i * 0.03 }}
-                                  className="group flex items-center gap-2.5 py-2 border-b border-border/5 last:border-0"
-                                >
-                                  <span className="text-[10px] text-muted-foreground/40 font-mono w-5 text-right shrink-0 font-bold">
-                                    {i + 1}.
-                                  </span>
-                                  <span className="flex-1 text-sm text-foreground font-medium truncate">{item.value}</span>
-                                  <motion.button
-                                    whileTap={{ scale: 0.85 }}
-                                    onClick={() => handleRestoreToWheel(list.id, item)}
-                                    title="Restore to wheel"
-                                    className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                              {items.map((item, i) => {
+                                const info = getInfo(item.value);
+                                return (
+                                  <motion.div
+                                    key={item.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.03 }}
+                                    className="group flex items-center gap-2.5 py-2 border-b border-border/5 last:border-0"
                                   >
-                                    <Undo2 className="w-3 h-3" />
-                                  </motion.button>
-                                  <motion.button
-                                    whileTap={{ scale: 0.85 }}
-                                    onClick={() => handleRemoveSavedItem(list.id, item)}
-                                    title="Delete from list"
-                                    className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </motion.button>
-                                  <span className="text-[10px] text-muted-foreground/30 hidden sm:inline">
-                                    {new Date(item.deleted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                  </span>
-                                </motion.div>
-                              ))}
+                                    <span className="text-[10px] text-muted-foreground/40 font-mono w-5 text-right shrink-0 font-bold">
+                                      {i + 1}.
+                                    </span>
+                                    <div className="w-8 h-8 rounded-md overflow-hidden bg-muted/30 shrink-0 flex items-center justify-center">
+                                      {info?.image ? (
+                                        <img src={info.image} alt={item.value} loading="lazy" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <span className="text-[10px] text-muted-foreground/40 font-bold">
+                                          {item.value.charAt(0).toUpperCase()}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="flex-1 text-sm text-foreground font-medium truncate">{item.value}</span>
+                                    <motion.button
+                                      whileTap={{ scale: 0.85 }}
+                                      onClick={() => handleRestoreToWheel(list.id, item)}
+                                      title="Restore to wheel"
+                                      className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                    >
+                                      <Undo2 className="w-3 h-3" />
+                                    </motion.button>
+                                    <motion.button
+                                      whileTap={{ scale: 0.85 }}
+                                      onClick={() => handleRemoveSavedItem(list.id, item)}
+                                      title="Delete from list"
+                                      className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </motion.button>
+                                    <span className="text-[10px] text-muted-foreground/30 hidden sm:inline">
+                                      {new Date(item.deleted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </span>
+                                  </motion.div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
