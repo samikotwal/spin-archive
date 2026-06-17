@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, ChevronDown, X, Loader2, StickyNote, FileText, Undo2 } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useWheelData } from '@/hooks/useWheelData';
 import { useLenis } from '@/hooks/useLenis';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { fetchAnimeImage, getImageCache, type AnimeInfo } from '@/lib/animeImageCache';
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 25 };
 
@@ -37,6 +38,60 @@ const SavedLists = () => {
   const [listItems, setListItems] = useState<Record<string, SavedItem[]>>({});
   const [loadingListId, setLoadingListId] = useState<string | null>(null);
   const [addInputs, setAddInputs] = useState<Record<string, string>>({});
+  const [imageVersion, setImageVersion] = useState(0);
+  const [previewItems, setPreviewItems] = useState<Record<string, SavedItem[]>>({});
+
+  // Lazy-fetch preview items (first 4) for every list to power the category preview thumbnails.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const list of lists) {
+        if (cancelled) return;
+        if (previewItems[list.id]) continue;
+        const items = await getListItems(list.id);
+        items.sort((a, b) => new Date(a.deleted_at).getTime() - new Date(b.deleted_at).getTime());
+        if (cancelled) return;
+        setPreviewItems(prev => ({ ...prev, [list.id]: items.slice(0, 4) }));
+        // Kick off image fetches for the preview values
+        const cache = getImageCache();
+        for (const it of items.slice(0, 4)) {
+          const key = it.value.toLowerCase().trim();
+          if (!(key in cache)) {
+            fetchAnimeImage(it.value).then(() => setImageVersion(v => v + 1));
+            await new Promise(r => setTimeout(r, 350));
+          }
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lists]);
+
+  // Whenever a list is expanded, also warm images for its visible items.
+  useEffect(() => {
+    if (!expandedListId) return;
+    const items = listItems[expandedListId] || [];
+    let cancelled = false;
+    (async () => {
+      const cache = getImageCache();
+      for (const it of items) {
+        if (cancelled) return;
+        const key = it.value.toLowerCase().trim();
+        if (key in cache) continue;
+        await fetchAnimeImage(it.value);
+        if (cancelled) return;
+        setImageVersion(v => v + 1);
+        await new Promise(r => setTimeout(r, 400));
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedListId, listItems]);
+
+  const cache = getImageCache();
+  const getInfo = (name: string): AnimeInfo | null => cache[name.toLowerCase().trim()] || null;
+  // Reference imageVersion to recompute on cache updates.
+  void imageVersion;
 
   const handleCreateList = async () => {
     if (!newListTitle.trim()) return;
