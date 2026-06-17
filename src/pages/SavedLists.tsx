@@ -253,6 +253,8 @@ const SavedLists = () => {
               const colorClass = NOTE_COLORS[index % NOTE_COLORS.length];
               const isExpanded = expandedListId === list.id;
               const items = listItems[list.id] || [];
+              const preview = previewItems[list.id] || [];
+              const previewCount = preview.length;
 
               return (
                 <motion.div
@@ -264,6 +266,29 @@ const SavedLists = () => {
                   className={`bg-gradient-to-br ${colorClass} border rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow`}
                   onClick={() => handleExpandList(list.id)}
                 >
+                  {/* Category preview thumbnails */}
+                  {previewCount > 0 && (
+                    <div className="grid grid-cols-4 gap-px bg-black/20 border-b border-border/10">
+                      {preview.map((p) => {
+                        const info = getInfo(p.value);
+                        return (
+                          <div key={p.id} className="aspect-square bg-muted/30 relative overflow-hidden">
+                            {info?.image ? (
+                              <img src={info.image} alt={p.value} loading="lazy" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground/30 font-bold">
+                                {p.value.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {Array.from({ length: Math.max(0, 4 - previewCount) }).map((_, i) => (
+                        <div key={`ph-${i}`} className="aspect-square bg-muted/10" />
+                      ))}
+                    </div>
+                  )}
+
                   {/* Note header */}
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-2">
@@ -282,8 +307,10 @@ const SavedLists = () => {
                     <p className="text-xs text-muted-foreground">
                       {new Date(list.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       {items.length > 0 && ` · ${items.length} items`}
+                      {items.length === 0 && previewCount > 0 && ` · ${previewCount} items`}
                     </p>
                   </div>
+
 
                   {/* Expanded items */}
                   <AnimatePresence>
