@@ -134,16 +134,19 @@ export type Database = {
       }
       lists: {
         Row: {
+          category: string | null
           created_at: string
           id: string
           title: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           id?: string
           title: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           id?: string
           title?: string

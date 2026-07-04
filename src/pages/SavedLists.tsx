@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, ChevronDown, X, Loader2, StickyNote, FileText, Undo2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ChevronDown, X, Loader2, StickyNote, FileText, Undo2, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useWheelData } from '@/hooks/useWheelData';
@@ -9,6 +9,7 @@ import { useLenis } from '@/hooks/useLenis';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { fetchAnimeImage, getImageCache, type AnimeInfo } from '@/lib/animeImageCache';
+import { parseEntries } from '@/lib/parseEntries';
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 25 };
 
@@ -30,16 +31,44 @@ interface SavedItem {
 const SavedLists = () => {
   useLenis();
   const navigate = useNavigate();
-  const { lists, createList, deleteList, getListItems, addWheelItems, wheelItems } = useWheelData();
+  const { lists, createList, deleteList, getListItems, addWheelItems, wheelItems, updateListCategory } = useWheelData();
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
+  const [newListCategory, setNewListCategory] = useState('');
   const [expandedListId, setExpandedListId] = useState<string | null>(null);
   const [listItems, setListItems] = useState<Record<string, SavedItem[]>>({});
   const [loadingListId, setLoadingListId] = useState<string | null>(null);
   const [addInputs, setAddInputs] = useState<Record<string, string>>({});
   const [imageVersion, setImageVersion] = useState(0);
   const [previewItems, setPreviewItems] = useState<Record<string, SavedItem[]>>({});
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryValue, setEditingCategoryValue] = useState('');
+
+  // Unique category chips derived from all lists (case-insensitive keys, display first-seen casing).
+  const categories = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const l of lists) {
+      const cat = (l as unknown as { category: string | null }).category;
+      if (cat && cat.trim()) {
+        const k = cat.trim().toLowerCase();
+        if (!map.has(k)) map.set(k, cat.trim());
+      }
+    }
+    return Array.from(map.values()).sort();
+  }, [lists]);
+
+  const filteredLists = useMemo(() => {
+    if (activeCategory === 'all') return lists;
+    if (activeCategory === 'uncategorized') {
+      return lists.filter(l => !(l as unknown as { category: string | null }).category);
+    }
+    return lists.filter(l => {
+      const cat = (l as unknown as { category: string | null }).category;
+      return (cat || '').trim().toLowerCase() === activeCategory.toLowerCase();
+    });
+  }, [lists, activeCategory]);
 
   // Lazy-fetch preview items (first 4) for every list to power the category preview thumbnails.
   useEffect(() => {
@@ -95,8 +124,9 @@ const SavedLists = () => {
 
   const handleCreateList = async () => {
     if (!newListTitle.trim()) return;
-    await createList(newListTitle.trim());
+    await createList(newListTitle.trim(), newListCategory.trim() || null);
     setNewListTitle('');
+    setNewListCategory('');
     setIsCreating(false);
   };
 
@@ -117,22 +147,51 @@ const SavedLists = () => {
   };
 
   const handleAddItem = async (listId: string) => {
-    const raw = (addInputs[listId] || '').trim();
-    if (!raw) return;
+    const raw = addInputs[listId] || '';
+    if (!raw.trim()) return;
+
+    // Parse multiple entries (newlines, commas, inline numbered markers) in order.
+    const parsed = parseEntries(raw, 'smart');
+    if (parsed.length === 0) return;
+
     const existing = listItems[listId] || [];
-    if (existing.some(i => i.value.toLowerCase() === raw.toLowerCase())) {
-      toast({ title: 'Duplicate', description: `"${raw}" is already in this list`, variant: 'destructive' });
+    const existingKeys = new Set(existing.map(i => i.value.toLowerCase().trim()));
+    const toInsert: string[] = [];
+    const skipped: string[] = [];
+    for (const p of parsed) {
+      const k = p.toLowerCase().trim();
+      if (!k) continue;
+      if (existingKeys.has(k)) { skipped.push(p); continue; }
+      existingKeys.add(k);
+      toInsert.push(p);
+    }
+
+    if (toInsert.length === 0) {
+      toast({ title: 'Duplicates skipped', description: `All ${skipped.length} item(s) already in this list`, variant: 'destructive' });
       return;
     }
-    const { error } = await supabase
-      .from('deleted_items')
-      .insert({ value: raw, list_id: listId });
-    if (error) {
-      toast({ title: 'Error', description: 'Failed to add item', variant: 'destructive' });
-      return;
+
+    // Insert one-by-one so deleted_at ordering matches the pasted sequence.
+    for (const value of toInsert) {
+      const { error } = await supabase
+        .from('deleted_items')
+        .insert({ value, list_id: listId });
+      if (error) {
+        toast({ title: 'Error', description: `Failed to add "${value}"`, variant: 'destructive' });
+        break;
+      }
+      // Tiny delay so timestamps differ and sort is stable.
+      await new Promise(r => setTimeout(r, 5));
     }
+
     setAddInputs(prev => ({ ...prev, [listId]: '' }));
     await refreshList(listId);
+    toast({
+      title: 'Added',
+      description: skipped.length > 0
+        ? `Added ${toInsert.length}, skipped ${skipped.length} duplicate(s)`
+        : `Added ${toInsert.length} item(s)`,
+    });
   };
 
   const handleRemoveSavedItem = async (listId: string, item: SavedItem) => {
@@ -217,8 +276,18 @@ const SavedLists = () => {
                   value={newListTitle} onChange={(e) => setNewListTitle(e.target.value)}
                   placeholder="List name..." autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
+                  className="bg-muted/50 border-border/20 rounded-xl mb-3"
+                />
+                <Input
+                  value={newListCategory} onChange={(e) => setNewListCategory(e.target.value)}
+                  placeholder="Category (e.g. Anime, Movies) — optional"
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
+                  list="category-suggestions"
                   className="bg-muted/50 border-border/20 rounded-xl mb-4"
                 />
+                <datalist id="category-suggestions">
+                  {categories.map(c => <option key={c} value={c} />)}
+                </datalist>
                 <div className="flex gap-2">
                   <Button onClick={handleCreateList} disabled={!newListTitle.trim()}
                     className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl">
@@ -248,8 +317,39 @@ const SavedLists = () => {
             </motion.div>
           </motion.div>
         ) : (
+          <>
+          {/* Category filter chips */}
+          {(categories.length > 0 || lists.some(l => !(l as unknown as {category: string|null}).category)) && (
+            <div className="flex flex-wrap gap-2 mb-5">
+              {(['all', ...categories, 'uncategorized'] as string[]).map(cat => {
+                const isActive = activeCategory.toLowerCase() === cat.toLowerCase();
+                const count = cat === 'all'
+                  ? lists.length
+                  : cat === 'uncategorized'
+                    ? lists.filter(l => !(l as unknown as {category: string|null}).category).length
+                    : lists.filter(l => ((l as unknown as {category: string|null}).category || '').toLowerCase() === cat.toLowerCase()).length;
+                if (cat === 'uncategorized' && count === 0) return null;
+                return (
+                  <motion.button
+                    key={cat}
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/30 text-muted-foreground border-border/20 hover:bg-muted/50'
+                    }`}
+                  >
+                    {cat === 'all' ? 'All' : cat === 'uncategorized' ? 'Uncategorized' : cat}
+                    <span className="ml-1.5 opacity-60">{count}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {lists.map((list, index) => {
+            {filteredLists.map((list, index) => {
+              const listCategory = (list as unknown as { category: string | null }).category;
               const colorClass = NOTE_COLORS[index % NOTE_COLORS.length];
               const isExpanded = expandedListId === list.id;
               const items = listItems[list.id] || [];
@@ -304,11 +404,53 @@ const SavedLists = () => {
                         </motion.div>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(list.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      {items.length > 0 && ` · ${items.length} items`}
-                      {items.length === 0 && previewCount > 0 && ` · ${previewCount} items`}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {editingCategoryId === list.id ? (
+                        <Input
+                          autoFocus
+                          value={editingCategoryValue}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => setEditingCategoryValue(e.target.value)}
+                          onBlur={async () => {
+                            await updateListCategory(list.id, editingCategoryValue || null);
+                            setEditingCategoryId(null);
+                          }}
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter') {
+                              await updateListCategory(list.id, editingCategoryValue || null);
+                              setEditingCategoryId(null);
+                            } else if (e.key === 'Escape') {
+                              setEditingCategoryId(null);
+                            }
+                          }}
+                          placeholder="Category..."
+                          list="category-suggestions"
+                          className="h-6 text-[11px] px-2 bg-background/60 border-border/20 rounded-full max-w-[140px]"
+                        />
+                      ) : (
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingCategoryId(list.id);
+                            setEditingCategoryValue(listCategory || '');
+                          }}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            listCategory
+                              ? 'bg-primary/15 text-primary border-primary/30'
+                              : 'bg-muted/30 text-muted-foreground/60 border-border/20'
+                          }`}
+                        >
+                          <Tag className="w-2.5 h-2.5" />
+                          {listCategory || 'add category'}
+                        </motion.button>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(list.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {items.length > 0 && ` · ${items.length} items`}
+                        {items.length === 0 && previewCount > 0 && ` · ${previewCount} items`}
+                      </p>
+                    </div>
                   </div>
 
 
@@ -330,7 +472,7 @@ const SavedLists = () => {
                               value={addInputs[list.id] || ''}
                               onChange={(e) => setAddInputs(prev => ({ ...prev, [list.id]: e.target.value }))}
                               onKeyDown={(e) => { if (e.key === 'Enter') handleAddItem(list.id); }}
-                              placeholder="Add item..."
+                              placeholder="Add item(s) — comma or newline separated..."
                               className="h-8 text-xs bg-background/60 border-border/20 rounded-lg"
                             />
                             <Button
@@ -406,6 +548,7 @@ const SavedLists = () => {
               );
             })}
           </div>
+          </>
         )}
       </main>
     </div>
