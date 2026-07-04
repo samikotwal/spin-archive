@@ -31,16 +31,44 @@ interface SavedItem {
 const SavedLists = () => {
   useLenis();
   const navigate = useNavigate();
-  const { lists, createList, deleteList, getListItems, addWheelItems, wheelItems } = useWheelData();
+  const { lists, createList, deleteList, getListItems, addWheelItems, wheelItems, updateListCategory } = useWheelData();
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
+  const [newListCategory, setNewListCategory] = useState('');
   const [expandedListId, setExpandedListId] = useState<string | null>(null);
   const [listItems, setListItems] = useState<Record<string, SavedItem[]>>({});
   const [loadingListId, setLoadingListId] = useState<string | null>(null);
   const [addInputs, setAddInputs] = useState<Record<string, string>>({});
   const [imageVersion, setImageVersion] = useState(0);
   const [previewItems, setPreviewItems] = useState<Record<string, SavedItem[]>>({});
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryValue, setEditingCategoryValue] = useState('');
+
+  // Unique category chips derived from all lists (case-insensitive keys, display first-seen casing).
+  const categories = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const l of lists) {
+      const cat = (l as unknown as { category: string | null }).category;
+      if (cat && cat.trim()) {
+        const k = cat.trim().toLowerCase();
+        if (!map.has(k)) map.set(k, cat.trim());
+      }
+    }
+    return Array.from(map.values()).sort();
+  }, [lists]);
+
+  const filteredLists = useMemo(() => {
+    if (activeCategory === 'all') return lists;
+    if (activeCategory === 'uncategorized') {
+      return lists.filter(l => !(l as unknown as { category: string | null }).category);
+    }
+    return lists.filter(l => {
+      const cat = (l as unknown as { category: string | null }).category;
+      return (cat || '').trim().toLowerCase() === activeCategory.toLowerCase();
+    });
+  }, [lists, activeCategory]);
 
   // Lazy-fetch preview items (first 4) for every list to power the category preview thumbnails.
   useEffect(() => {
