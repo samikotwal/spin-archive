@@ -203,10 +203,10 @@ export const useWheelData = () => {
     toast({ title: 'Cleared', description: 'All items removed from the wheel' });
   };
 
-  const createList = async (title: string) => {
+  const createList = async (title: string, category?: string | null) => {
     const { data, error } = await supabase
       .from('lists')
-      .insert({ title })
+      .insert({ title, category: category?.trim() || null })
       .select()
       .single();
 
@@ -219,6 +219,19 @@ export const useWheelData = () => {
     setSelectedListId(data.id);
     toast({ title: 'List Created', description: `Created list "${title}"` });
     return data;
+  };
+
+  const updateListCategory = async (listId: string, category: string | null) => {
+    const value = category?.trim() || null;
+    const { error } = await supabase
+      .from('lists')
+      .update({ category: value })
+      .eq('id', listId);
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to update category', variant: 'destructive' });
+      return;
+    }
+    setLists(prev => prev.map(l => l.id === listId ? { ...l, category: value } : l));
   };
 
   const deleteList = async (listId: string) => {
