@@ -124,8 +124,9 @@ const SavedLists = () => {
 
   const handleCreateList = async () => {
     if (!newListTitle.trim()) return;
-    await createList(newListTitle.trim());
+    await createList(newListTitle.trim(), newListCategory.trim() || null);
     setNewListTitle('');
+    setNewListCategory('');
     setIsCreating(false);
   };
 
@@ -146,22 +147,51 @@ const SavedLists = () => {
   };
 
   const handleAddItem = async (listId: string) => {
-    const raw = (addInputs[listId] || '').trim();
-    if (!raw) return;
+    const raw = addInputs[listId] || '';
+    if (!raw.trim()) return;
+
+    // Parse multiple entries (newlines, commas, inline numbered markers) in order.
+    const parsed = parseEntries(raw, 'smart');
+    if (parsed.length === 0) return;
+
     const existing = listItems[listId] || [];
-    if (existing.some(i => i.value.toLowerCase() === raw.toLowerCase())) {
-      toast({ title: 'Duplicate', description: `"${raw}" is already in this list`, variant: 'destructive' });
+    const existingKeys = new Set(existing.map(i => i.value.toLowerCase().trim()));
+    const toInsert: string[] = [];
+    const skipped: string[] = [];
+    for (const p of parsed) {
+      const k = p.toLowerCase().trim();
+      if (!k) continue;
+      if (existingKeys.has(k)) { skipped.push(p); continue; }
+      existingKeys.add(k);
+      toInsert.push(p);
+    }
+
+    if (toInsert.length === 0) {
+      toast({ title: 'Duplicates skipped', description: `All ${skipped.length} item(s) already in this list`, variant: 'destructive' });
       return;
     }
-    const { error } = await supabase
-      .from('deleted_items')
-      .insert({ value: raw, list_id: listId });
-    if (error) {
-      toast({ title: 'Error', description: 'Failed to add item', variant: 'destructive' });
-      return;
+
+    // Insert one-by-one so deleted_at ordering matches the pasted sequence.
+    for (const value of toInsert) {
+      const { error } = await supabase
+        .from('deleted_items')
+        .insert({ value, list_id: listId });
+      if (error) {
+        toast({ title: 'Error', description: `Failed to add "${value}"`, variant: 'destructive' });
+        break;
+      }
+      // Tiny delay so timestamps differ and sort is stable.
+      await new Promise(r => setTimeout(r, 5));
     }
+
     setAddInputs(prev => ({ ...prev, [listId]: '' }));
     await refreshList(listId);
+    toast({
+      title: 'Added',
+      description: skipped.length > 0
+        ? `Added ${toInsert.length}, skipped ${skipped.length} duplicate(s)`
+        : `Added ${toInsert.length} item(s)`,
+    });
   };
 
   const handleRemoveSavedItem = async (listId: string, item: SavedItem) => {
