@@ -286,6 +286,7 @@ export const useWheelData = () => {
     deleteAndSaveToList,
     clearAllItems,
     createList,
+    updateListCategory,
     deleteList,
     getListItems,
     fetchLists,
