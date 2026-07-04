@@ -74,12 +74,32 @@ export const useWheelData = () => {
   }, [fetchWheelItems, fetchLists]);
 
   const addWheelItems = async (items: WheelDisplayItem[]) => {
-    const rows = items.map(item => ({ 
-      value: item.name, 
+    // Dedupe: skip anything already on the wheel or duplicated within this batch
+    // (case-insensitive), while preserving the original order.
+    const existing = new Set(wheelItems.map(w => w.value.toLowerCase().trim()));
+    const filtered: WheelDisplayItem[] = [];
+    const skipped: string[] = [];
+    for (const item of items) {
+      const key = item.name.toLowerCase().trim();
+      if (!key) continue;
+      if (existing.has(key)) { skipped.push(item.name); continue; }
+      existing.add(key);
+      filtered.push(item);
+    }
+
+    if (filtered.length === 0) {
+      if (skipped.length > 0) {
+        toast({ title: 'Duplicates skipped', description: `${skipped.length} already on the wheel`, variant: 'destructive' });
+      }
+      return;
+    }
+
+    const rows = filtered.map(item => ({
+      value: item.name,
       image_url: item.imageUrl || null,
-      is_deleted: false 
+      is_deleted: false,
     }));
-    
+
     const { data, error } = await supabase
       .from('wheel_items')
       .insert(rows)
@@ -91,7 +111,12 @@ export const useWheelData = () => {
     }
 
     setWheelItems(prev => [...prev, ...(data || [])]);
-    toast({ title: 'Items Added', description: `Added ${items.length} item(s) to the wheel` });
+    toast({
+      title: 'Items Added',
+      description: skipped.length > 0
+        ? `Added ${filtered.length}, skipped ${skipped.length} duplicate(s)`
+        : `Added ${filtered.length} item(s) to the wheel`,
+    });
   };
 
   const removeWheelItem = async (index: number) => {
