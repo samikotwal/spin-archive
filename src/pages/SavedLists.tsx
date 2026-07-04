@@ -472,7 +472,7 @@ const SavedLists = () => {
                               value={addInputs[list.id] || ''}
                               onChange={(e) => setAddInputs(prev => ({ ...prev, [list.id]: e.target.value }))}
                               onKeyDown={(e) => { if (e.key === 'Enter') handleAddItem(list.id); }}
-                              placeholder="Add item..."
+                              placeholder="Add item(s) — comma or newline separated..."
                               className="h-8 text-xs bg-background/60 border-border/20 rounded-lg"
                             />
                             <Button
