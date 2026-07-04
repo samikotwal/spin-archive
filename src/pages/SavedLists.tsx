@@ -404,11 +404,53 @@ const SavedLists = () => {
                         </motion.div>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(list.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      {items.length > 0 && ` · ${items.length} items`}
-                      {items.length === 0 && previewCount > 0 && ` · ${previewCount} items`}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {editingCategoryId === list.id ? (
+                        <Input
+                          autoFocus
+                          value={editingCategoryValue}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => setEditingCategoryValue(e.target.value)}
+                          onBlur={async () => {
+                            await updateListCategory(list.id, editingCategoryValue || null);
+                            setEditingCategoryId(null);
+                          }}
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter') {
+                              await updateListCategory(list.id, editingCategoryValue || null);
+                              setEditingCategoryId(null);
+                            } else if (e.key === 'Escape') {
+                              setEditingCategoryId(null);
+                            }
+                          }}
+                          placeholder="Category..."
+                          list="category-suggestions"
+                          className="h-6 text-[11px] px-2 bg-background/60 border-border/20 rounded-full max-w-[140px]"
+                        />
+                      ) : (
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingCategoryId(list.id);
+                            setEditingCategoryValue(listCategory || '');
+                          }}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            listCategory
+                              ? 'bg-primary/15 text-primary border-primary/30'
+                              : 'bg-muted/30 text-muted-foreground/60 border-border/20'
+                          }`}
+                        >
+                          <Tag className="w-2.5 h-2.5" />
+                          {listCategory || 'add category'}
+                        </motion.button>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(list.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {items.length > 0 && ` · ${items.length} items`}
+                        {items.length === 0 && previewCount > 0 && ` · ${previewCount} items`}
+                      </p>
+                    </div>
                   </div>
 
 
