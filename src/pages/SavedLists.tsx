@@ -506,6 +506,7 @@ const SavedLists = () => {
               );
             })}
           </div>
+          </>
         )}
       </main>
     </div>
