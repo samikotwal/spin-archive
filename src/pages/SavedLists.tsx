@@ -317,8 +317,39 @@ const SavedLists = () => {
             </motion.div>
           </motion.div>
         ) : (
+          <>
+          {/* Category filter chips */}
+          {(categories.length > 0 || lists.some(l => !(l as unknown as {category: string|null}).category)) && (
+            <div className="flex flex-wrap gap-2 mb-5">
+              {(['all', ...categories, 'uncategorized'] as string[]).map(cat => {
+                const isActive = activeCategory.toLowerCase() === cat.toLowerCase();
+                const count = cat === 'all'
+                  ? lists.length
+                  : cat === 'uncategorized'
+                    ? lists.filter(l => !(l as unknown as {category: string|null}).category).length
+                    : lists.filter(l => ((l as unknown as {category: string|null}).category || '').toLowerCase() === cat.toLowerCase()).length;
+                if (cat === 'uncategorized' && count === 0) return null;
+                return (
+                  <motion.button
+                    key={cat}
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/30 text-muted-foreground border-border/20 hover:bg-muted/50'
+                    }`}
+                  >
+                    {cat === 'all' ? 'All' : cat === 'uncategorized' ? 'Uncategorized' : cat}
+                    <span className="ml-1.5 opacity-60">{count}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {lists.map((list, index) => {
+            {filteredLists.map((list, index) => {
+              const listCategory = (list as unknown as { category: string | null }).category;
               const colorClass = NOTE_COLORS[index % NOTE_COLORS.length];
               const isExpanded = expandedListId === list.id;
               const items = listItems[list.id] || [];
