@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, ChevronDown, X, Loader2, StickyNote, FileText, Undo2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ChevronDown, X, Loader2, StickyNote, FileText, Undo2, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useWheelData } from '@/hooks/useWheelData';
@@ -9,6 +9,7 @@ import { useLenis } from '@/hooks/useLenis';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { fetchAnimeImage, getImageCache, type AnimeInfo } from '@/lib/animeImageCache';
+import { parseEntries } from '@/lib/parseEntries';
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 25 };
 
