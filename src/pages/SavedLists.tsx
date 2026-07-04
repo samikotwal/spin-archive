@@ -276,8 +276,18 @@ const SavedLists = () => {
                   value={newListTitle} onChange={(e) => setNewListTitle(e.target.value)}
                   placeholder="List name..." autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
+                  className="bg-muted/50 border-border/20 rounded-xl mb-3"
+                />
+                <Input
+                  value={newListCategory} onChange={(e) => setNewListCategory(e.target.value)}
+                  placeholder="Category (e.g. Anime, Movies) — optional"
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
+                  list="category-suggestions"
                   className="bg-muted/50 border-border/20 rounded-xl mb-4"
                 />
+                <datalist id="category-suggestions">
+                  {categories.map(c => <option key={c} value={c} />)}
+                </datalist>
                 <div className="flex gap-2">
                   <Button onClick={handleCreateList} disabled={!newListTitle.trim()}
                     className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl">
