@@ -12,6 +12,7 @@ export interface WheelItem {
 interface List {
   id: string;
   title: string;
+  category: string | null;
   created_at: string;
 }
 
