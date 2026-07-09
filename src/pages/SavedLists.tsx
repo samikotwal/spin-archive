@@ -278,16 +278,29 @@ const SavedLists = () => {
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
                   className="bg-muted/50 border-border/20 rounded-xl mb-3"
                 />
-                <Input
-                  value={newListCategory} onChange={(e) => setNewListCategory(e.target.value)}
-                  placeholder="Category (e.g. Anime, Movies) — optional"
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
-                  list="category-suggestions"
-                  className="bg-muted/50 border-border/20 rounded-xl mb-4"
-                />
-                <datalist id="category-suggestions">
-                  {categories.map(c => <option key={c} value={c} />)}
-                </datalist>
+                <div className="mb-4">
+                  <p className="text-xs font-bold text-muted-foreground mb-2">Type</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'Movies', label: '🎬 Movies' },
+                      { value: 'Seasons', label: '📺 Seasons' },
+                      { value: 'Names', label: '📝 Names' },
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setNewListCategory(opt.value)}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                          newListCategory === opt.value
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted/40 text-muted-foreground border-border/20 hover:bg-muted/60'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <Button onClick={handleCreateList} disabled={!newListTitle.trim()}
                     className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl">
