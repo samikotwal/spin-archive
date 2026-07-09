@@ -506,51 +506,66 @@ const SavedLists = () => {
                             <p className="text-center py-6 text-xs text-muted-foreground/50">No items saved yet</p>
                           ) : (
                             <div className="space-y-0">
-                              {items.map((item, i) => {
-                                const info = getInfo(item.value);
+                              {(() => {
+                                const isSeasons = (listCategory || '').toLowerCase() === 'seasons';
+                                const visible = isSeasons ? items.slice(0, 5) : items;
+                                const hidden = items.length - visible.length;
                                 return (
-                                  <motion.div
-                                    key={item.id}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: i * 0.03 }}
-                                    className="group flex items-center gap-2.5 py-2 border-b border-border/5 last:border-0"
-                                  >
-                                    <span className="text-[10px] text-muted-foreground/40 font-mono w-5 text-right shrink-0 font-bold">
-                                      {i + 1}.
-                                    </span>
-                                    <div className="w-8 h-8 rounded-md overflow-hidden bg-muted/30 shrink-0 flex items-center justify-center">
-                                      {info?.image ? (
-                                        <img src={info.image} alt={item.value} loading="lazy" className="w-full h-full object-cover" />
-                                      ) : (
-                                        <span className="text-[10px] text-muted-foreground/40 font-bold">
-                                          {item.value.charAt(0).toUpperCase()}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <span className="flex-1 text-sm text-foreground font-medium truncate">{item.value}</span>
-                                    <motion.button
-                                      whileTap={{ scale: 0.85 }}
-                                      onClick={() => handleRestoreToWheel(list.id, item)}
-                                      title="Restore to wheel"
-                                      className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
-                                    >
-                                      <Undo2 className="w-3 h-3" />
-                                    </motion.button>
-                                    <motion.button
-                                      whileTap={{ scale: 0.85 }}
-                                      onClick={() => handleRemoveSavedItem(list.id, item)}
-                                      title="Delete from list"
-                                      className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </motion.button>
-                                    <span className="text-[10px] text-muted-foreground/30 hidden sm:inline">
-                                      {new Date(item.deleted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                    </span>
-                                  </motion.div>
+                                  <>
+                                    {visible.map((item, i) => {
+                                      const info = getInfo(item.value);
+                                      const label = isSeasons ? `S${i + 1}` : `${i + 1}.`;
+                                      return (
+                                        <motion.div
+                                          key={item.id}
+                                          initial={{ opacity: 0, x: -10 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          transition={{ delay: i * 0.03 }}
+                                          className="group flex items-center gap-2.5 py-2 border-b border-border/5 last:border-0"
+                                        >
+                                          <span className="text-[10px] text-muted-foreground/60 font-mono w-8 text-right shrink-0 font-bold">
+                                            {label}
+                                          </span>
+                                          <div className="w-8 h-8 rounded-md overflow-hidden bg-muted/30 shrink-0 flex items-center justify-center">
+                                            {info?.image ? (
+                                              <img src={info.image} alt={item.value} loading="lazy" className="w-full h-full object-cover" />
+                                            ) : (
+                                              <span className="text-[10px] text-muted-foreground/40 font-bold">
+                                                {item.value.charAt(0).toUpperCase()}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <span className="flex-1 text-sm text-foreground font-medium truncate">{item.value}</span>
+                                          <motion.button
+                                            whileTap={{ scale: 0.85 }}
+                                            onClick={() => handleRestoreToWheel(list.id, item)}
+                                            title="Restore to wheel"
+                                            className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                          >
+                                            <Undo2 className="w-3 h-3" />
+                                          </motion.button>
+                                          <motion.button
+                                            whileTap={{ scale: 0.85 }}
+                                            onClick={() => handleRemoveSavedItem(list.id, item)}
+                                            title="Delete from list"
+                                            className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </motion.button>
+                                          <span className="text-[10px] text-muted-foreground/30 hidden sm:inline">
+                                            {new Date(item.deleted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                          </span>
+                                        </motion.div>
+                                      );
+                                    })}
+                                    {isSeasons && hidden > 0 && (
+                                      <p className="text-[10px] text-muted-foreground/60 text-center pt-2 italic">
+                                        Showing max S5 · {hidden} more hidden
+                                      </p>
+                                    )}
+                                  </>
                                 );
-                              })}
+                              })()}
                             </div>
                           )}
                         </div>
