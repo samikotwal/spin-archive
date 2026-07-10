@@ -419,27 +419,55 @@ const SavedLists = () => {
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {editingCategoryId === list.id ? (
-                        <Input
-                          autoFocus
-                          value={editingCategoryValue}
+                        <div
                           onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => setEditingCategoryValue(e.target.value)}
-                          onBlur={async () => {
-                            await updateListCategory(list.id, editingCategoryValue || null);
-                            setEditingCategoryId(null);
-                          }}
-                          onKeyDown={async (e) => {
-                            if (e.key === 'Enter') {
-                              await updateListCategory(list.id, editingCategoryValue || null);
-                              setEditingCategoryId(null);
-                            } else if (e.key === 'Escape') {
-                              setEditingCategoryId(null);
-                            }
-                          }}
-                          placeholder="Category..."
-                          list="category-suggestions"
-                          className="h-6 text-[11px] px-2 bg-background/60 border-border/20 rounded-full max-w-[140px]"
-                        />
+                          className="flex items-center gap-1 flex-wrap"
+                        >
+                          {[
+                            { value: 'Movies', label: '🎬 Movies' },
+                            { value: 'Seasons', label: '📺 Seasons' },
+                            { value: 'Names', label: '📝 Names' },
+                          ].map(opt => {
+                            const active = (listCategory || '').toLowerCase() === opt.value.toLowerCase();
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={async () => {
+                                  await updateListCategory(list.id, opt.value);
+                                  setEditingCategoryId(null);
+                                }}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                                  active
+                                    ? 'bg-primary text-primary-foreground border-primary'
+                                    : 'bg-background/60 text-muted-foreground border-border/20 hover:bg-muted/60'
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                          {listCategory && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await updateListCategory(list.id, null);
+                                setEditingCategoryId(null);
+                              }}
+                              className="px-1.5 py-0.5 rounded-full text-[10px] font-bold border border-border/20 text-muted-foreground/60 hover:text-destructive"
+                              title="Clear"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setEditingCategoryId(null)}
+                            className="px-1.5 py-0.5 rounded-full text-[10px] font-bold text-muted-foreground/60 hover:text-foreground"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       ) : (
                         <motion.button
                           whileTap={{ scale: 0.9 }}
@@ -455,7 +483,7 @@ const SavedLists = () => {
                           }`}
                         >
                           <Tag className="w-2.5 h-2.5" />
-                          {listCategory || 'add category'}
+                          {listCategory || 'set type'}
                         </motion.button>
                       )}
                       <p className="text-xs text-muted-foreground">
