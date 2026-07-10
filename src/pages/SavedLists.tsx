@@ -61,9 +61,6 @@ const SavedLists = () => {
 
   const filteredLists = useMemo(() => {
     if (activeCategory === 'all') return lists;
-    if (activeCategory === 'uncategorized') {
-      return lists.filter(l => !(l as unknown as { category: string | null }).category);
-    }
     return lists.filter(l => {
       const cat = (l as unknown as { category: string | null }).category;
       return (cat || '').trim().toLowerCase() === activeCategory.toLowerCase();
@@ -331,35 +328,38 @@ const SavedLists = () => {
           </motion.div>
         ) : (
           <>
-          {/* Category filter chips */}
-          {(categories.length > 0 || lists.some(l => !(l as unknown as {category: string|null}).category)) && (
-            <div className="flex flex-wrap gap-2 mb-5">
-              {(['all', ...categories, 'uncategorized'] as string[]).map(cat => {
-                const isActive = activeCategory.toLowerCase() === cat.toLowerCase();
-                const count = cat === 'all'
-                  ? lists.length
-                  : cat === 'uncategorized'
-                    ? lists.filter(l => !(l as unknown as {category: string|null}).category).length
+          {/* Category filter chips — always include Movies/Seasons/Names presets */}
+          {(() => {
+            const PRESETS = ['Movies', 'Seasons', 'Names'];
+            const presetSet = new Set(PRESETS.map(p => p.toLowerCase()));
+            const extras = categories.filter(c => !presetSet.has(c.toLowerCase()));
+            const chips = ['all', ...PRESETS, ...extras];
+            return (
+              <div className="flex flex-nowrap gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+                {chips.map(cat => {
+                  const isActive = activeCategory.toLowerCase() === cat.toLowerCase();
+                  const count = cat === 'all'
+                    ? lists.length
                     : lists.filter(l => ((l as unknown as {category: string|null}).category || '').toLowerCase() === cat.toLowerCase()).length;
-                if (cat === 'uncategorized' && count === 0) return null;
-                return (
-                  <motion.button
-                    key={cat}
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-                      isActive
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/30 text-muted-foreground border-border/20 hover:bg-muted/50'
-                    }`}
-                  >
-                    {cat === 'all' ? 'All' : cat === 'uncategorized' ? 'Uncategorized' : cat}
-                    <span className="ml-1.5 opacity-60">{count}</span>
-                  </motion.button>
-                );
-              })}
-            </div>
-          )}
+                  return (
+                    <motion.button
+                      key={cat}
+                      whileTap={{ scale: 0.94 }}
+                      onClick={() => setActiveCategory(cat)}
+                      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/30 text-muted-foreground border-border/20 hover:bg-muted/50'
+                      }`}
+                    >
+                      {cat === 'all' ? 'All' : cat}
+                      <span className="ml-1.5 opacity-60">{count}</span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            );
+          })()}
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {filteredLists.map((list, index) => {
               const listCategory = (list as unknown as { category: string | null }).category;
