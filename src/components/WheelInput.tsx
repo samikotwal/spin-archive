@@ -206,6 +206,18 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
           >
             <Settings2 className="w-4 h-4" />
           </motion.button>
+          {items.length > 0 && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                if (window.confirm(`Delete all ${items.length} entries from the wheel?`)) onClearAll();
+              }}
+              className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 transition-colors"
+              title="Delete all entries"
+            >
+              <X className="w-4 h-4" />
+            </motion.button>
+          )}
         </div>
         <p className="text-[10px] text-muted-foreground/40 mt-1.5 px-1">
           📝 Anime name likho — paste karke ek saath multiple add bhi kar sakte ho.
