@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download, Undo2 } from 'lucide-react';
+import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download, Undo2, Palette } from 'lucide-react';
+import WheelStylePicker from '@/components/WheelStylePicker';
+import { getSavedStyleId, setSavedStyleId } from '@/lib/wheelStyles';
 import { Button } from '@/components/ui/button';
 import SpinningWheel from '@/components/SpinningWheel';
 import WheelInput from '@/components/WheelInput';
@@ -38,6 +40,9 @@ const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [browseCollapsed, setBrowseCollapsed] = useState(false);
   const [eliminationMode, setEliminationMode] = useState(false);
+  const [stylePickerOpen, setStylePickerOpen] = useState(false);
+  const [wheelStyleId, setWheelStyleId] = useState<string>(() => getSavedStyleId());
+  const handleSelectStyle = useCallback((id: string) => { setWheelStyleId(id); setSavedStyleId(id); }, []);
   const [animeImages, setAnimeImages] = useState<Record<string, { image: string | null; title: string | null }>>({});
   const animeImagesRef = useRef('');
   const handleImagesChange = useCallback((images: Record<string, { image: string | null; title: string | null }>) => {
@@ -349,6 +354,10 @@ const Index = () => {
             🎡 {activeWheel?.title || 'Spin Wheel'}
           </motion.h1>
           <div className="flex items-center gap-1">
+            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setStylePickerOpen(true)} title="Wheel design"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary">
+              <Palette className="w-4 h-4" />
+            </motion.button>
             <motion.button whileTap={{ scale: 0.9 }} onClick={() => setMuted(!muted)}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground">
               {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -395,7 +404,7 @@ const Index = () => {
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...spring, delay: 0.1 }}
           className="flex-1 flex items-center justify-center min-h-0 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5" />
-          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} imageMap={animeImages} />
+          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} imageMap={animeImages} styleId={wheelStyleId} />
         </motion.div>
 
         <motion.div initial={{ y: 100 }} animate={{ y: 0 }} transition={spring}
@@ -412,6 +421,7 @@ const Index = () => {
         <DeleteConfirmDialog isOpen={showDeleteDialog} selectedItem={selectedItem || ''}
           onConfirm={handleConfirmDelete} onCancel={handleCancelDelete}
           eliminationMode={eliminationMode} />
+        <WheelStylePicker open={stylePickerOpen} onClose={() => setStylePickerOpen(false)} selectedId={wheelStyleId} onSelect={handleSelectStyle} />
       </div>
     );
   }
@@ -432,6 +442,10 @@ const Index = () => {
           )}
         </div>
         <div className="flex items-center gap-1">
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setStylePickerOpen(true)} title="Wheel design"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary transition-colors">
+            <Palette className="w-4 h-4" />
+          </motion.button>
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => setMuted(!muted)}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
             {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -484,7 +498,7 @@ const Index = () => {
           <div className="absolute inset-0" style={{
             backgroundImage: 'radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.03) 0%, transparent 70%)',
           }} />
-          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} imageMap={animeImages} />
+          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} imageMap={animeImages} styleId={wheelStyleId} />
         </motion.div>
 
         {/* Panel toggle */}
@@ -517,6 +531,7 @@ const Index = () => {
       <DeleteConfirmDialog isOpen={showDeleteDialog} selectedItem={selectedItem || ''}
         onConfirm={handleConfirmDelete} onCancel={handleCancelDelete}
         eliminationMode={eliminationMode} />
+      <WheelStylePicker open={stylePickerOpen} onClose={() => setStylePickerOpen(false)} selectedId={wheelStyleId} onSelect={handleSelectStyle} />
     </div>
   );
 };
