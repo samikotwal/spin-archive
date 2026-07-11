@@ -498,7 +498,7 @@ const Index = () => {
           <div className="absolute inset-0" style={{
             backgroundImage: 'radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.03) 0%, transparent 70%)',
           }} />
-          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} imageMap={animeImages} />
+          <SpinningWheel items={currentItems} onSpinEnd={handleSpinEnd} isSpinning={isSpinning} setIsSpinning={setIsSpinning} onSpinStart={handleSpinStart} imageMap={animeImages} styleId={wheelStyleId} />
         </motion.div>
 
         {/* Panel toggle */}
@@ -531,6 +531,7 @@ const Index = () => {
       <DeleteConfirmDialog isOpen={showDeleteDialog} selectedItem={selectedItem || ''}
         onConfirm={handleConfirmDelete} onCancel={handleCancelDelete}
         eliminationMode={eliminationMode} />
+      <WheelStylePicker open={stylePickerOpen} onClose={() => setStylePickerOpen(false)} selectedId={wheelStyleId} onSelect={handleSelectStyle} />
     </div>
   );
 };
