@@ -421,6 +421,7 @@ const Index = () => {
         <DeleteConfirmDialog isOpen={showDeleteDialog} selectedItem={selectedItem || ''}
           onConfirm={handleConfirmDelete} onCancel={handleCancelDelete}
           eliminationMode={eliminationMode} />
+        <WheelStylePicker open={stylePickerOpen} onClose={() => setStylePickerOpen(false)} selectedId={wheelStyleId} onSelect={handleSelectStyle} />
       </div>
     );
   }
@@ -441,6 +442,10 @@ const Index = () => {
           )}
         </div>
         <div className="flex items-center gap-1">
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setStylePickerOpen(true)} title="Wheel design"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary transition-colors">
+            <Palette className="w-4 h-4" />
+          </motion.button>
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => setMuted(!muted)}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
             {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
