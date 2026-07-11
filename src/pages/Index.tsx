@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download, Undo2 } from 'lucide-react';
+import { Shuffle, ArrowUpDown, X, ChevronRight, ChevronLeft, Trophy, Pencil, BarChart3, Menu, Bookmark, Volume2, VolumeX, Users, Zap, Download, Undo2, Palette } from 'lucide-react';
+import WheelStylePicker from '@/components/WheelStylePicker';
+import { getSavedStyleId, setSavedStyleId } from '@/lib/wheelStyles';
 import { Button } from '@/components/ui/button';
 import SpinningWheel from '@/components/SpinningWheel';
 import WheelInput from '@/components/WheelInput';
@@ -38,6 +40,9 @@ const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [browseCollapsed, setBrowseCollapsed] = useState(false);
   const [eliminationMode, setEliminationMode] = useState(false);
+  const [stylePickerOpen, setStylePickerOpen] = useState(false);
+  const [wheelStyleId, setWheelStyleId] = useState<string>(() => getSavedStyleId());
+  const handleSelectStyle = useCallback((id: string) => { setWheelStyleId(id); setSavedStyleId(id); }, []);
   const [animeImages, setAnimeImages] = useState<Record<string, { image: string | null; title: string | null }>>({});
   const animeImagesRef = useRef('');
   const handleImagesChange = useCallback((images: Record<string, { image: string | null; title: string | null }>) => {
