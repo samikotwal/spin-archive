@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Star } from 'lucide-react';
+import { queuedFetch, readLocalCache, readStaleLocalCache, writeLocalCache } from '@/lib/jikanQueue';
 
 interface Anime {
   mal_id: number;
@@ -14,13 +15,20 @@ interface Anime {
 
 const JIKAN_API = 'https://api.jikan.moe/v4';
 
+const dedupe = (arr: Anime[]) => {
+  const seen = new Set<number>();
+  return arr.filter(a => (seen.has(a.mal_id) ? false : (seen.add(a.mal_id), true)));
+};
+
 const MostViewedSidebar = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'day' | 'week' | 'month'>('day');
-  const [dayAnime, setDayAnime] = useState<Anime[]>([]);
-  const [weekAnime, setWeekAnime] = useState<Anime[]>([]);
-  const [monthAnime, setMonthAnime] = useState<Anime[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [dayAnime, setDayAnime] = useState<Anime[]>(() => readLocalCache<Anime[]>('mv_day') ?? []);
+  const [weekAnime, setWeekAnime] = useState<Anime[]>(() => readLocalCache<Anime[]>('mv_week') ?? []);
+  const [monthAnime, setMonthAnime] = useState<Anime[]>(() => readLocalCache<Anime[]>('mv_month') ?? []);
+  const [isLoading, setIsLoading] = useState(() =>
+    !readLocalCache<Anime[]>('mv_day') && !readLocalCache<Anime[]>('mv_week') && !readLocalCache<Anime[]>('mv_month')
+  );
 
   const tabs = [
     { id: 'day' as const, label: 'Day' },
@@ -29,35 +37,42 @@ const MostViewedSidebar = () => {
   ];
 
   useEffect(() => {
-    const fetchTab = async (url: string): Promise<Anime[]> => {
+    const fetchTab = async (url: string, cacheKey: string): Promise<Anime[]> => {
+      const cached = readLocalCache<Anime[]>(cacheKey);
+      if (cached && cached.length > 0) return cached;
       try {
-        const res = await fetch(url);
+        const res = await queuedFetch(url);
+        if (!res.ok) throw new Error(`API ${res.status}`);
         const json = await res.json();
-        return json.data || [];
+        const data: Anime[] = dedupe(json.data || []);
+        if (data.length > 0) writeLocalCache(cacheKey, data);
+        return data;
       } catch {
-        return [];
+        return readStaleLocalCache<Anime[]>(cacheKey) ?? [];
       }
     };
 
+    let cancelled = false;
     const fetchAll = async () => {
-      setIsLoading(true);
-      // Fetch sequentially with delays to avoid rate limiting
-      const day = await fetchTab(`${JIKAN_API}/top/anime?filter=airing&limit=25`);
+      const day = await fetchTab(`${JIKAN_API}/top/anime?filter=airing&limit=25`, 'mv_day');
+      if (cancelled) return;
       setDayAnime(day);
 
-      await new Promise(r => setTimeout(r, 400));
-      const week = await fetchTab(`${JIKAN_API}/top/anime?filter=bypopularity&limit=25`);
+      const week = await fetchTab(`${JIKAN_API}/top/anime?filter=bypopularity&limit=25`, 'mv_week');
+      if (cancelled) return;
       setWeekAnime(week);
 
-      await new Promise(r => setTimeout(r, 400));
-      const month = await fetchTab(`${JIKAN_API}/top/anime?limit=25`);
+      const month = await fetchTab(`${JIKAN_API}/top/anime?limit=25`, 'mv_month');
+      if (cancelled) return;
       setMonthAnime(month);
 
       setIsLoading(false);
     };
 
     fetchAll();
+    return () => { cancelled = true; };
   }, []);
+
 
   const displayed = activeTab === 'day' ? dayAnime : activeTab === 'week' ? weekAnime : monthAnime;
 
@@ -98,7 +113,7 @@ const MostViewedSidebar = () => {
         <div className="space-y-2">
           {displayed.slice(0, 20).map((item, index) => (
             <motion.div
-              key={`${activeTab}-${item.mal_id}`}
+              key={`${activeTab}-${item.mal_id}-${index}`}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.02 }}

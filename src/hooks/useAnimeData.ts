@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { queuedFetch, readLocalCache, readStaleLocalCache, writeLocalCache } from '@/lib/jikanQueue';
 
 interface Anime {
   mal_id: number;
@@ -55,29 +56,6 @@ interface UseAnimeDataReturn {
 const JIKAN_API = 'https://api.jikan.moe/v4';
 const CACHE_DURATION = 30 * 60 * 1000;
 
-// Simple queue to handle Jikan rate limiting (3 req/sec)
-const apiQueue: (() => void)[] = [];
-let processing = false;
-
-const processQueue = () => {
-  if (processing || apiQueue.length === 0) return;
-  processing = true;
-  const next = apiQueue.shift()!;
-  next();
-  setTimeout(() => {
-    processing = false;
-    processQueue();
-  }, 350);
-};
-
-const queuedFetch = (url: string): Promise<Response> => {
-  return new Promise((resolve, reject) => {
-    apiQueue.push(() => {
-      fetch(url).then(resolve).catch(reject);
-    });
-    processQueue();
-  });
-};
 
 export const useAnimeData = (): UseAnimeDataReturn => {
   const [popularAnime, setPopularAnime] = useState<Anime[]>([]);
@@ -113,42 +91,62 @@ export const useAnimeData = (): UseAnimeDataReturn => {
   const [hasMoreTV, setHasMoreTV] = useState(true);
   const [hasMoreRecent, setHasMoreRecent] = useState(true);
 
-  const fetchFromApi = async (endpoint: string, category: string): Promise<Anime[]> => {
-    // Check cache first (parallel-safe)
+  const fetchFromApi = async (
+    endpoint: string,
+    category: string,
+    onInstant?: (data: Anime[]) => void,
+  ): Promise<Anime[]> => {
+    // 1) Instant paint from localStorage if fresh
+    const local = readLocalCache<Anime[]>(category);
+    if (local && local.length > 0) {
+      onInstant?.(local);
+      return local;
+    }
+
+    // 2) Check Supabase cache (fresh only)
     try {
       const { data: cachedData } = await supabase
         .from('anime_cache')
         .select('*')
         .eq('category', category)
-        .single();
+        .maybeSingle();
 
       if (cachedData) {
         const fetchedAt = new Date(cachedData.fetched_at).getTime();
         if (Date.now() - fetchedAt < CACHE_DURATION) {
-          return (cachedData.data as unknown) as Anime[];
+          const fresh = (cachedData.data as unknown) as Anime[];
+          writeLocalCache(category, fresh);
+          return fresh;
         }
       }
 
-      // Use queued fetch for rate limiting
+      // 3) Live fetch (rate-limited + retried)
       const response = await queuedFetch(`${JIKAN_API}${endpoint}`);
-      if (!response.ok) throw new Error('API request failed');
-      
-      const json = await response.json();
-      const animes = json.data || [];
+      if (!response.ok) throw new Error(`API ${response.status}`);
 
-      // Update cache (fire and forget)
+      const json = await response.json();
+      const animes: Anime[] = json.data || [];
+
+      if (animes.length > 0) writeLocalCache(category, animes);
+
+      // Cache write (fire-and-forget)
+      const jsonData = animes as unknown as any;
       if (cachedData) {
-        supabase.from('anime_cache').update({ data: animes, fetched_at: new Date().toISOString() }).eq('category', category).then(() => {});
+        supabase.from('anime_cache').update({ data: jsonData, fetched_at: new Date().toISOString() }).eq('category', category).then(() => {});
       } else {
-        supabase.from('anime_cache').insert({ category, data: animes }).then(() => {});
+        supabase.from('anime_cache').insert([{ category, data: jsonData }]).then(() => {});
       }
+
 
       return animes;
     } catch (error) {
       console.error('Error fetching anime:', error);
-      return [];
+      // 4) Fallback: any stale localStorage data beats empty grid
+      const stale = readStaleLocalCache<Anime[]>(category);
+      return stale ?? [];
     }
   };
+
 
   const loadPopular = async (page: number) => {
     setIsLoadingPopular(true);
