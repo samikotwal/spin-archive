@@ -95,6 +95,17 @@ export const useWheelData = () => {
       return;
     }
 
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please sign in to add items to the wheel.',
+        variant: 'destructive',
+      });
+      window.location.href = '/auth';
+      return;
+    }
+
     const rows = filtered.map(item => ({
       value: item.name,
       image_url: item.imageUrl || null,
@@ -107,7 +118,7 @@ export const useWheelData = () => {
       .select();
 
     if (error) {
-      toast({ title: 'Error', description: 'Failed to add items', variant: 'destructive' });
+      toast({ title: 'Error', description: error.message || 'Failed to add items', variant: 'destructive' });
       return;
     }
 
