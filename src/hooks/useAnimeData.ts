@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { queuedFetch, readLocalCache, readStaleLocalCache, writeLocalCache } from '@/lib/jikanQueue';
 
 interface Anime {
   mal_id: number;
@@ -55,29 +56,6 @@ interface UseAnimeDataReturn {
 const JIKAN_API = 'https://api.jikan.moe/v4';
 const CACHE_DURATION = 30 * 60 * 1000;
 
-// Simple queue to handle Jikan rate limiting (3 req/sec)
-const apiQueue: (() => void)[] = [];
-let processing = false;
-
-const processQueue = () => {
-  if (processing || apiQueue.length === 0) return;
-  processing = true;
-  const next = apiQueue.shift()!;
-  next();
-  setTimeout(() => {
-    processing = false;
-    processQueue();
-  }, 350);
-};
-
-const queuedFetch = (url: string): Promise<Response> => {
-  return new Promise((resolve, reject) => {
-    apiQueue.push(() => {
-      fetch(url).then(resolve).catch(reject);
-    });
-    processQueue();
-  });
-};
 
 export const useAnimeData = (): UseAnimeDataReturn => {
   const [popularAnime, setPopularAnime] = useState<Anime[]>([]);
