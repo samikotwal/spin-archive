@@ -113,7 +113,7 @@ const MostViewedSidebar = () => {
         <div className="space-y-2">
           {displayed.slice(0, 20).map((item, index) => (
             <motion.div
-              key={`${activeTab}-${item.mal_id}`}
+              key={`${activeTab}-${item.mal_id}-${index}`}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.02 }}
