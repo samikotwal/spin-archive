@@ -130,11 +130,13 @@ export const useAnimeData = (): UseAnimeDataReturn => {
       if (animes.length > 0) writeLocalCache(category, animes);
 
       // Cache write (fire-and-forget)
+      const jsonData = animes as unknown as any;
       if (cachedData) {
-        supabase.from('anime_cache').update({ data: animes, fetched_at: new Date().toISOString() }).eq('category', category).then(() => {});
+        supabase.from('anime_cache').update({ data: jsonData, fetched_at: new Date().toISOString() }).eq('category', category).then(() => {});
       } else {
-        supabase.from('anime_cache').insert({ category, data: animes }).then(() => {});
+        supabase.from('anime_cache').insert([{ category, data: jsonData }]).then(() => {});
       }
+
 
       return animes;
     } catch (error) {
