@@ -63,20 +63,26 @@ const WheelInput = ({ items, onUpdateItems, onClearAll, onImagesChange }: WheelI
     });
     let cancelled = false;
     (async () => {
-      for (let i = 0; i < toFetch.length; i++) {
+      const BATCH = 3;
+      for (let i = 0; i < toFetch.length; i += BATCH) {
         if (cancelled) return;
-        if (i > 0) await new Promise(r => setTimeout(r, 500));
-        await fetchAnimeImage(toFetch[i]);
+        const slice = toFetch.slice(i, i + BATCH);
+        await Promise.all(slice.map(async (name) => {
+          await fetchAnimeImage(name);
+          if (cancelled) return;
+          setLoadingKeys(prev => {
+            const next = new Set(prev);
+            next.delete(name.toLowerCase().trim());
+            return next;
+          });
+          setImageVersion(v => v + 1);
+        }));
         if (cancelled) return;
-        setLoadingKeys(prev => {
-          const next = new Set(prev);
-          next.delete(toFetch[i].toLowerCase().trim());
-          return next;
-        });
-        setImageVersion(v => v + 1);
+        if (i + BATCH < toFetch.length) await new Promise(r => setTimeout(r, 250));
       }
     })();
     return () => { cancelled = true; };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsKey]);
 
